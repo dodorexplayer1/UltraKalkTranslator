@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra Translator Pro</title>
+  <title>Ultra Translator Pro V2</title>
 
   <style>
     body {
@@ -20,11 +20,11 @@
       padding: 20px;
       border-radius: 15px;
       width: 90%;
-      max-width: 450px;
+      max-width: 500px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    textarea, input, select, button {
+    textarea, select, input, button {
       width: 100%;
       margin-top: 10px;
       padding: 10px;
@@ -36,8 +36,8 @@
     button {
       background: #3b82f6;
       color: white;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
     }
 
     button:hover {
@@ -51,21 +51,17 @@
       border-radius: 8px;
       min-height: 40px;
     }
-
-    select {
-      max-height: 150px;
-    }
   </style>
 </head>
 
 <body>
 
 <div class="card">
-  <h2>Ultra Translator Pro</h2>
+  <h2>Ultra Translator Pro V2</h2>
 
   <textarea id="text" placeholder="Text eingeben"></textarea>
 
-  <input id="searchLang" placeholder="Sprache suchen..." onkeyup="filterLanguages()">
+  <input id="search" placeholder="Sprache suchen..." onkeyup="filterLanguages()">
 
   <select id="lang"></select>
 
@@ -75,59 +71,42 @@
 </div>
 
 <script>
-const languages = {
-  en: "Englisch",
-  es: "Spanisch",
-  fr: "Französisch",
-  it: "Italienisch",
-  tr: "Türkisch",
-  ar: "Arabisch",
-  ru: "Russisch",
-  zh: "Chinesisch",
-  ja: "Japanisch",
-  ko: "Koreanisch",
-  pt: "Portugiesisch",
-  nl: "Niederländisch",
-  sv: "Schwedisch",
-  pl: "Polnisch",
-  el: "Griechisch",
-  cs: "Tschechisch",
-  da: "Dänisch",
-  fi: "Finnisch",
-  hi: "Hindi",
-  ro: "Rumänisch",
-  hu: "Ungarisch",
-  de: "Deutsch",
-  bg: "Bulgarisch",
-  uk: "Ukrainisch",
-  he: "Hebräisch"
-};
+let allLanguages = {};
 
-function loadLanguages() {
-  let select = document.getElementById("lang");
-  select.innerHTML = "";
+async function loadLanguages() {
+  try {
+    let res = await fetch("https://libretranslate.de/languages");
+    let data = await res.json();
 
-  for (let code in languages) {
-    let option = document.createElement("option");
-    option.value = code;
-    option.textContent = languages[code];
-    select.appendChild(option);
+    allLanguages = data;
+
+    renderLanguages(data);
+  } catch (e) {
+    document.getElementById("output").innerText =
+      "Fehler: Sprachen konnten nicht geladen werden";
   }
 }
 
-function filterLanguages() {
-  let input = document.getElementById("searchLang").value.toLowerCase();
+function renderLanguages(list) {
   let select = document.getElementById("lang");
   select.innerHTML = "";
 
-  for (let code in languages) {
-    if (languages[code].toLowerCase().includes(input)) {
-      let option = document.createElement("option");
-      option.value = code;
-      option.textContent = languages[code];
-      select.appendChild(option);
-    }
-  }
+  list.forEach(lang => {
+    let option = document.createElement("option");
+    option.value = lang.code;
+    option.textContent = lang.name;
+    select.appendChild(option);
+  });
+}
+
+function filterLanguages() {
+  let input = document.getElementById("search").value.toLowerCase();
+
+  let filtered = allLanguages.filter(lang =>
+    lang.name.toLowerCase().includes(input)
+  );
+
+  renderLanguages(filtered);
 }
 
 async function translateText() {
@@ -139,16 +118,23 @@ async function translateText() {
     return;
   }
 
-  let url = "https://api.mymemory.translated.net/get?q="
-    + encodeURIComponent(text)
-    + "&langpair=de|" + lang;
-
   try {
-    let response = await fetch(url);
+    let response = await fetch("https://libretranslate.de/translate", {
+      method: "POST",
+      body: JSON.stringify({
+        q: text,
+        source: "de",
+        target: lang,
+        format: "text"
+      }),
+      headers: { "Content-Type": "application/json" }
+    });
+
     let data = await response.json();
 
     document.getElementById("output").innerText =
-      data.responseData.translatedText;
+      data.translatedText;
+
   } catch (e) {
     document.getElementById("output").innerText =
       "Fehler beim Übersetzen";
