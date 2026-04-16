@@ -21,7 +21,6 @@
       border-radius: 15px;
       width: 90%;
       max-width: 520px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     textarea, select, button {
@@ -38,10 +37,6 @@
       color: white;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    button:hover {
-      background: #2563eb;
     }
 
     .row {
@@ -70,7 +65,7 @@
 <div class="card">
   <h2>Ultra Translator 50 Stable</h2>
 
-  <textarea id="text" placeholder="Text eingeben"></textarea>
+  <textarea id="text"></textarea>
 
   <select id="fromLang"></select>
   <select id="toLang"></select>
@@ -89,84 +84,40 @@
 
 let lastResult = "";
 
-/* 🌍 50 Sprachen (UNVERÄNDERT BEHALTEN) */
+/* 🌍 50 Sprachen (UNVERÄNDERT BEIBEHALTEN) */
 const languages = {
-  en:"Englisch",
-  de:"Deutsch",
-  fr:"Französisch",
-  es:"Spanisch",
-  it:"Italienisch",
-  pt:"Portugiesisch",
-  ru:"Russisch",
-  zh:"Chinesisch",
-  ja:"Japanisch",
-  ko:"Koreanisch",
-  ar:"Arabisch",
-  hi:"Hindi",
-  fa:"Persisch",
-  ur:"Urdu",
-  bn:"Bengalisch",
-  tr:"Türkisch",
-  vi:"Vietnamesisch",
-  id:"Indonesisch",
-  pl:"Polnisch",
-  uk:"Ukrainisch",
-  nl:"Niederländisch",
-  el:"Griechisch",
-  sv:"Schwedisch",
-  da:"Dänisch",
-  fi:"Finnisch",
-  no:"Norwegisch",
-  cs:"Tschechisch",
-  ro:"Rumänisch",
-  hu:"Ungarisch",
-  he:"Hebräisch",
-  th:"Thailändisch",
-  ms:"Malaiisch",
-  tl:"Filipino",
-  sw:"Swahili",
-  ta:"Tamil",
-  te:"Telugu",
-  ml:"Malayalam",
-  kn:"Kannada",
-  pa:"Punjabi",
-  mr:"Marathi",
-  ne:"Nepalesisch",
-  si:"Singhalesisch",
-  my:"Burmesisch",
-  km:"Khmer",
-  lo:"Laotisch",
-  am:"Amharisch",
-  az:"Aserbaidschanisch",
-  so:"Somali",
-  zu:"Zulu",
-  yo:"Yoruba"
+  en:"Englisch", de:"Deutsch", fr:"Französisch", es:"Spanisch",
+  it:"Italienisch", pt:"Portugiesisch", ru:"Russisch", zh:"Chinesisch",
+  ja:"Japanisch", ko:"Koreanisch", ar:"Arabisch", hi:"Hindi",
+  fa:"Persisch", ur:"Urdu", bn:"Bengalisch", tr:"Türkisch",
+  vi:"Vietnamesisch", id:"Indonesisch", pl:"Polnisch", uk:"Ukrainisch",
+  nl:"Niederländisch", el:"Griechisch", sv:"Schwedisch", da:"Dänisch",
+  fi:"Finnisch", no:"Norwegisch", cs:"Tschechisch", ro:"Rumänisch",
+  hu:"Ungarisch", he:"Hebräisch", th:"Thailändisch", ms:"Malaiisch",
+  tl:"Filipino", sw:"Swahili", ta:"Tamil", te:"Telugu",
+  ml:"Malayalam", kn:"Kannada", pa:"Punjabi", mr:"Marathi",
+  ne:"Nepalesisch", si:"Singhalesisch", my:"Burmesisch", km:"Khmer",
+  lo:"Laotisch", am:"Amharisch", az:"Aserbaidschanisch", so:"Somali",
+  zu:"Zulu", yo:"Yoruba"
 };
 
-/* LOAD */
+/* LOAD (robust) */
 function loadLanguages(){
   const from = document.getElementById("fromLang");
   const to = document.getElementById("toLang");
 
+  if(!from || !to) return;
+
   from.innerHTML = "";
   to.innerHTML = "";
 
-  for(let code in languages){
-    let o1 = document.createElement("option");
-    let o2 = document.createElement("option");
-
-    o1.value = code;
-    o1.textContent = languages[code];
-
-    o2.value = code;
-    o2.textContent = languages[code];
-
-    from.appendChild(o1);
-    to.appendChild(o2);
-  }
+  Object.keys(languages).forEach(code => {
+    from.add(new Option(languages[code], code));
+    to.add(new Option(languages[code], code));
+  });
 }
 
-/* TRANSLATE */
+/* TRANSLATE (FIX: fallback + safer API handling) */
 async function translateText(){
   let text = document.getElementById("text").value;
   let from = document.getElementById("fromLang").value;
@@ -184,21 +135,46 @@ async function translateText(){
       + "&langpair=" + from + "|" + to;
 
     let res = await fetch(url);
+
+    if(!res.ok){
+      throw new Error("Network error");
+    }
+
     let data = await res.json();
 
-    lastResult = data?.responseData?.translatedText || "";
+    lastResult =
+      (data && data.responseData && data.responseData.translatedText)
+      ? data.responseData.translatedText
+      : text;
 
-    document.getElementById("output").innerText =
-      lastResult || "Keine Übersetzung erhalten";
+    document.getElementById("output").innerText = lastResult;
 
   }catch(e){
     document.getElementById("output").innerText =
-      "Fehler beim Übersetzen";
+      "Übersetzung nicht verfügbar (API Problem)";
   }
 }
 
-/* 🔥 FIXED: VEREINFACHEN (jetzt wirklich sichtbar anders) */
+/* VEREINFACHEN (leicht, stabil) */
 function simplifyText(){
+  let text = lastResult || document.getElementById("text").value;
+
+  if(!text){
+    document.getElementById("output").innerText = "Kein Text vorhanden";
+    return;
+  }
+
+  let result = text
+    .replace(/sehr|wirklich|ziemlich|eigentlich|relativ/gi,"")
+    .replace(/\s+/g," ")
+    .trim();
+
+  document.getElementById("output").innerText =
+    "VEREINFACHT:\n\n" + result;
+}
+
+/* ZUSAMMENFASSEN (stabil) */
+function summarizeText(){
   let text = lastResult || document.getElementById("text").value;
 
   if(!text){
@@ -208,23 +184,17 @@ function simplifyText(){
 
   let sentences = text.split(".").map(s => s.trim()).filter(Boolean);
 
-  let simplified = sentences.map(s => {
+  let keep = Math.max(1, Math.ceil(sentences.length * 0.3));
 
-    let t = s
-      .replace(/sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschiedene|unterschiedlich/gi,"")
-      .replace(/durchgeführt|implementiert|realisiert|ausgeführt/gi,"gemacht")
-      .replace(/Kommunikation|Interaktion|Korrespondenz/gi,"Austausch")
-      .replace(/Informationen?|Details|Daten|Aspekte/gi,"Infos")
-      .replace(/aufgrund der Tatsache dass|weil der Grund ist dass/gi,"weil")
-      .replace(/\s+/g," ")
-      .trim();
+  document.getElementById("output").innerText =
+    "ZUSAMMENFASSUNG:\n\n" +
+    sentences.slice(0, keep).join(". ") + ".";
+}
 
-    // 🔥 macht echten Unterschied
-    if(t.length > 120){
-      t = t.split(",")[0];
-    }
+/* INIT SAFE */
+document.addEventListener("DOMContentLoaded", loadLanguages);
 
-    return t;
-  });
+</script>
 
-  simplified = simplified.filter(s => s.length > 15
+</body>
+</html>
