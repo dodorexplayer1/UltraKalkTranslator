@@ -182,25 +182,38 @@ function loadLanguages(){
   }
 }
 
-/* TRANSLATE */
+/* TRANSLATE (FIX MIT EMAIL = STABILER) */
 async function translateText(){
   let text=document.getElementById("text").value;
-
   let from=document.getElementById("fromLang").value;
   let to=document.getElementById("toLang").value;
 
-  let res=await fetch(
-    "https://api.mymemory.translated.net/get?q="+
-    encodeURIComponent(text)+
-    "&langpair="+from+"|"+to
-  );
+  if(!text.trim()){
+    document.getElementById("output").innerText="Kein Text";
+    return;
+  }
 
-  let data=await res.json();
-  lastResult = data.responseData.translatedText;
-  document.getElementById("output").innerText = lastResult;
+  try{
+    let res = await fetch(
+      "https://api.mymemory.translated.net/get?q=" +
+      encodeURIComponent(text) +
+      "&langpair=" + from + "|" + to +
+      "&de=ahmadmnini92@gmail.com"
+    );
+
+    let data = await res.json();
+
+    lastResult = data?.responseData?.translatedText || "";
+
+    document.getElementById("output").innerText = lastResult;
+
+  }catch(e){
+    document.getElementById("output").innerText =
+      "Übersetzung aktuell nicht verfügbar";
+  }
 }
 
-/* 🔥 FIX: VEREINFACHEN (STABIL + NICHT LEER) */
+/* SIMPLIFY */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -210,16 +223,15 @@ function simplifyText(){
   }
 
   let result = text
-    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschiedene)\b/gi,"")
-    .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
-    .replace(/\b(Informationen?|Details|Aspekte|Daten)\b/gi,"Infos")
+    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex)\b/gi,"")
     .replace(/\s+/g," ")
     .trim();
 
-  document.getElementById("output").innerText = "VEREINFACHT:\n\n" + result;
+  document.getElementById("output").innerText =
+    "VEREINFACHT:\n\n" + result;
 }
 
-/* 🔥 FIX: ZUSAMMENFASSEN (ECHT KÜRZEN) */
+/* SUMMARIZE */
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -228,26 +240,18 @@ function summarizeText(){
     return;
   }
 
-  let sentences = text.split(".").map(s => s.trim()).filter(Boolean);
+  let sentences = text.split(".").filter(s => s.trim());
 
-  if(sentences.length === 0){
-    document.getElementById("output").innerText = "Text zu kurz";
-    return;
-  }
-
-  let keep = Math.max(1, Math.ceil(sentences.length * 0.35));
-
-  let summary = sentences.slice(0, keep).join(". ");
+  let short = sentences.slice(0, Math.ceil(sentences.length * 0.3));
 
   document.getElementById("output").innerText =
-    "ZUSAMMENFASSUNG:\n\n" + summary + ".";
+    "ZUSAMMENFASSUNG:\n\n" + short.join(".");
 }
 
 /* MENU */
 function toggleMenu(){
   document.getElementById("menu").classList.toggle("hidden");
 }
-
 function openSettings(){ document.getElementById("output").innerText="Settings"; }
 function openLogin(){ document.getElementById("output").innerText="Login"; }
 function openSupport(){ document.getElementById("output").innerText="Support"; }
@@ -277,7 +281,6 @@ function loadChat(){
   });
 }
 
-/* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
   loadLanguages();
   loadChat();
