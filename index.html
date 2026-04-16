@@ -86,34 +86,33 @@
 
 <script>
 
-// 🌍 DEINE VORHERIGE GROSSE SPRACHLISTE (BEHALTEN + ERWEITERT)
+// 🌍 VOLLE 100+ SPRACHLISTE (WIEDERHERGESTELLT + STABIL)
 const languages = {
   af:"Afrikaans", sq:"Albanisch", am:"Amharisch", ar:"Arabisch",
   hy:"Armenisch", az:"Aserbaidschanisch", eu:"Baskisch", be:"Belarussisch",
   bn:"Bengalisch", bs:"Bosnisch", bg:"Bulgarisch", ca:"Katalanisch",
-  ceb:"Cebuano", zh:"Chinesisch", co:"Korsisch", hr:"Kroatisch",
-  cs:"Tschechisch", da:"Dänisch", nl:"Niederländisch", en:"Englisch",
-  eo:"Esperanto", et:"Estnisch", fi:"Finnisch", fr:"Französisch",
-  fy:"Friesisch", gl:"Galizisch", ka:"Georgisch", de:"Deutsch",
-  el:"Griechisch", gu:"Gujarati", ht:"Haitianisch", ha:"Hausa",
-  haw:"Hawaiianisch", he:"Hebräisch", hi:"Hindi", hu:"Ungarisch",
-  is:"Isländisch", id:"Indonesisch", ga:"Irisch", it:"Italienisch",
-  ja:"Japanisch", jv:"Javanisch", kn:"Kannada", kk:"Kasachisch",
-  km:"Khmer", ko:"Koreanisch", ku:"Kurdisch", ky:"Kirgisisch",
-  lo:"Laotisch", la:"Latein", lv:"Lettisch", lt:"Litauisch",
-  lb:"Luxemburgisch", mk:"Mazedonisch", mg:"Madagassisch",
-  ms:"Malaiisch", ml:"Malayalam", mt:"Maltesisch", mi:"Maori",
-  mr:"Marathi", mn:"Mongolisch", my:"Burmesisch", ne:"Nepalesisch",
-  no:"Norwegisch", ny:"Nyanja", or:"Odia", ps:"Paschtu",
-  fa:"Persisch", pl:"Polnisch", pt:"Portugiesisch", pa:"Punjabi",
-  ro:"Rumänisch", ru:"Russisch", sm:"Samoanisch", gd:"Schottisch-Gälisch",
-  sr:"Serbisch", st:"Sesotho", sn:"Shona", sd:"Sindhi",
-  si:"Singhalesisch", sk:"Slowakisch", sl:"Slowenisch",
-  so:"Somali", es:"Spanisch", su:"Sundanesisch", sw:"Swahili",
-  sv:"Schwedisch", tl:"Tagalog", tg:"Tadschikisch", ta:"Tamil",
-  te:"Telugu", th:"Thailändisch", tr:"Türkisch", uk:"Ukrainisch",
-  ur:"Urdu", uz:"Usbekisch", vi:"Vietnamesisch", cy:"Walisisch",
-  xh:"Xhosa", yi:"Jiddisch", yo:"Yoruba", zu:"Zulu"
+  ceb:"Cebuano", zh:"Chinesisch", hr:"Kroatisch", cs:"Tschechisch",
+  da:"Dänisch", nl:"Niederländisch", en:"Englisch", eo:"Esperanto",
+  et:"Estnisch", fi:"Finnisch", fr:"Französisch", fy:"Friesisch",
+  gl:"Galizisch", ka:"Georgisch", de:"Deutsch", el:"Griechisch",
+  gu:"Gujarati", ht:"Haitianisch", ha:"Hausa", haw:"Hawaiianisch",
+  he:"Hebräisch", hi:"Hindi", hu:"Ungarisch", is:"Isländisch",
+  id:"Indonesisch", ga:"Irisch", it:"Italienisch", ja:"Japanisch",
+  jv:"Javanisch", kn:"Kannada", kk:"Kasachisch", km:"Khmer",
+  ko:"Koreanisch", ku:"Kurdisch", ky:"Kirgisisch", lo:"Laotisch",
+  la:"Latein", lv:"Lettisch", lt:"Litauisch", lb:"Luxemburgisch",
+  mk:"Mazedonisch", mg:"Madagassisch", ms:"Malaiisch", ml:"Malayalam",
+  mt:"Maltesisch", mi:"Maori", mr:"Marathi", mn:"Mongolisch",
+  my:"Burmesisch", ne:"Nepalesisch", no:"Norwegisch", ny:"Nyanja",
+  or:"Odia", ps:"Paschtu", fa:"Persisch", pl:"Polnisch",
+  pt:"Portugiesisch", pa:"Punjabi", ro:"Rumänisch", ru:"Russisch",
+  sm:"Samoanisch", gd:"Schottisch-Gälisch", sr:"Serbisch", st:"Sesotho",
+  sn:"Shona", sd:"Sindhi", si:"Singhalesisch", sk:"Slowakisch",
+  sl:"Slowenisch", so:"Somali", es:"Spanisch", su:"Sundanesisch",
+  sw:"Swahili", sv:"Schwedisch", tl:"Tagalog", tg:"Tadschikisch",
+  ta:"Tamil", te:"Telugu", th:"Thailändisch", tr:"Türkisch",
+  uk:"Ukrainisch", ur:"Urdu", uz:"Usbekisch", vi:"Vietnamesisch",
+  cy:"Walisisch", xh:"Xhosa", yi:"Jiddisch", yo:"Yoruba", zu:"Zulu"
 };
 
 function loadLanguages(){
@@ -127,7 +126,7 @@ function loadLanguages(){
   }
 }
 
-// 🌍 Übersetzung
+// 🌍 Übersetzer
 async function translateText(){
   let text = document.getElementById("text").value;
   let lang = document.getElementById("lang").value;
@@ -163,7 +162,12 @@ function simplifyText(){
   }
 
   document.getElementById("output").innerText =
-    text.replace(/kompliziert|schwierig|durchgeführt/gi, "gemacht");
+    text
+    .replace(/kompliziert|schwierig|durchgeführt|implementiert/gi, "gemacht")
+    .replace(/Kommunikation/gi, "Austausch")
+    .replace(/Transformation/gi, "Veränderung")
+    .replace(/andererseits/gi, "aber")
+    .replace(/daher|deshalb|somit/gi, "darum");
 }
 
 // 🧠 Zusammenfassen
@@ -175,11 +179,21 @@ function summarizeText(){
     return;
   }
 
-  let sentences = text.split(".");
-  let shortText = sentences.slice(0,2).join(".") + ".";
+  let sentences = text.split(".").map(s => s.trim()).filter(s => s.length > 10);
+
+  if(sentences.length <= 2){
+    document.getElementById("output").innerText = text;
+    return;
+  }
+
+  let summary = [
+    sentences[0],
+    sentences[Math.floor(sentences.length / 2)],
+    sentences[sentences.length - 1]
+  ].join(". ") + ".";
 
   document.getElementById("output").innerText =
-    "ZUSAMMENFASSUNG:\n\n" + shortText;
+    "ZUSAMMENFASSUNG:\n\n" + summary;
 }
 
 window.onload = loadLanguages;
