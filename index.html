@@ -89,36 +89,49 @@
 
 let lastResult = "";
 
-// 🌍 100+ Sprachen automatisch laden
-async function loadLanguages(){
+// 🌍 FIXE 100+ SPRACHLISTE (KEINE API MEHR)
+const languages = {
+  af:"Afrikaans", sq:"Albanisch", am:"Amharisch", ar:"Arabisch",
+  hy:"Armenisch", az:"Aserbaidschanisch", eu:"Baskisch", be:"Belarussisch",
+  bn:"Bengalisch", bs:"Bosnisch", bg:"Bulgarisch", ca:"Katalanisch",
+  ceb:"Cebuano", zh:"Chinesisch", hr:"Kroatisch", cs:"Tschechisch",
+  da:"Dänisch", nl:"Niederländisch", en:"Englisch", eo:"Esperanto",
+  et:"Estnisch", fi:"Finnisch", fr:"Französisch", fy:"Friesisch",
+  gl:"Galizisch", ka:"Georgisch", de:"Deutsch", el:"Griechisch",
+  gu:"Gujarati", ht:"Haitianisch", ha:"Hausa", he:"Hebräisch",
+  hi:"Hindi", hu:"Ungarisch", is:"Isländisch", id:"Indonesisch",
+  it:"Italienisch", ja:"Japanisch", ko:"Koreanisch", lv:"Lettisch",
+  lt:"Litauisch", no:"Norwegisch", pl:"Polnisch", pt:"Portugiesisch",
+  ro:"Rumänisch", ru:"Russisch", sk:"Slowakisch", sl:"Slowenisch",
+  es:"Spanisch", sv:"Schwedisch", th:"Thailändisch", tr:"Türkisch",
+  uk:"Ukrainisch", vi:"Vietnamesisch", fa:"Persisch", ur:"Urdu",
+  ta:"Tamil", te:"Telugu", ml:"Malayalam", kn:"Kannada",
+  pa:"Punjabi", mr:"Marathi", ne:"Nepalesisch", si:"Singhalesisch",
+  my:"Burmesisch", km:"Khmer", lo:"Laotisch", mn:"Mongolisch",
+  sw:"Swahili", zu:"Zulu", xh:"Xhosa", yo:"Yoruba"
+};
+
+// 🟢 Sprache laden (lokal, stabil)
+function loadLanguages(){
   let from = document.getElementById("fromLang");
   let to = document.getElementById("toLang");
 
-  try{
-    let res = await fetch("https://libretranslate.de/languages");
-    let langs = await res.json();
+  for(let code in languages){
+    let o1 = document.createElement("option");
+    let o2 = document.createElement("option");
 
-    langs.forEach(l => {
-      let o1 = document.createElement("option");
-      let o2 = document.createElement("option");
+    o1.value = code;
+    o1.textContent = languages[code];
 
-      o1.value = l.code;
-      o1.textContent = l.name;
+    o2.value = code;
+    o2.textContent = languages[code];
 
-      o2.value = l.code;
-      o2.textContent = l.name;
-
-      from.appendChild(o1);
-      to.appendChild(o2);
-    });
-
-  }catch(e){
-    document.getElementById("output").innerText =
-      "Sprachen konnten nicht geladen werden";
+    from.appendChild(o1);
+    to.appendChild(o2);
   }
 }
 
-// 🌍 Übersetzen (JETZT beliebig FROM → TO)
+// 🌍 Übersetzen (jede Sprache → jede Sprache)
 async function translateText(){
   let text = document.getElementById("text").value;
   let from = document.getElementById("fromLang").value;
@@ -130,27 +143,17 @@ async function translateText(){
   }
 
   try{
-    let chunks = [];
+    let res = await fetch(
+      "https://api.mymemory.translated.net/get?q="
+      + encodeURIComponent(text)
+      + "&langpair=" + from + "|" + to
+    );
 
-    for(let i = 0; i < text.length; i += 400){
-      chunks.push(text.substring(i, i + 400));
-    }
+    let data = await res.json();
 
-    let result = "";
+    lastResult = data.responseData.translatedText;
 
-    for(let chunk of chunks){
-      let res = await fetch(
-        "https://api.mymemory.translated.net/get?q="
-        + encodeURIComponent(chunk)
-        + "&langpair=" + from + "|" + to
-      );
-
-      let data = await res.json();
-      result += data.responseData.translatedText + " ";
-    }
-
-    lastResult = result;
-    document.getElementById("output").innerText = result;
+    document.getElementById("output").innerText = lastResult;
 
   }catch(e){
     document.getElementById("output").innerText =
@@ -158,36 +161,24 @@ async function translateText(){
   }
 }
 
-// 🧠 Vereinfachen (arbeitet auf Ergebnis)
+// 🧠 Vereinfachen
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value;
 
-  let result = text
-    .replace(/kompliziert|schwierig|durchgeführt|implementiert/gi, "gemacht")
+  document.getElementById("output").innerText =
+    text
+    .replace(/kompliziert|schwierig/gi, "einfach")
     .replace(/Kommunikation/gi, "Austausch")
-    .replace(/Transformation/gi, "Veränderung")
-    .replace(/andererseits/gi, "aber")
-    .replace(/daher|deshalb|somit/gi, "darum");
-
-  document.getElementById("output").innerText = result;
+    .replace(/Transformation/gi, "Veränderung");
 }
 
-// 🧠 Zusammenfassen (arbeitet auf Ergebnis)
+// 🧠 Zusammenfassen
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value;
 
-  let sentences = text.split(".").map(s => s.trim()).filter(s => s.length > 10);
+  let sentences = text.split(".").filter(s => s.trim().length > 10);
 
-  if(sentences.length <= 2){
-    document.getElementById("output").innerText = text;
-    return;
-  }
-
-  let summary = [
-    sentences[0],
-    sentences[Math.floor(sentences.length / 2)],
-    sentences[sentences.length - 1]
-  ].join(". ") + ".";
+  let summary = sentences.slice(0, 2).join(". ") + ".";
 
   document.getElementById("output").innerText = summary;
 }
