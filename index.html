@@ -210,36 +210,38 @@ async function translateText(){
   }
 }
 
-/* ✔ VEREINFACHEN FIX */
+/* ✔ VEREINFACHEN FINAL FIX */
 function simplifyText(){
-  let text = lastResult || document.getElementById("text").value || "";
+  let text = (lastResult || document.getElementById("text").value || "").trim();
 
-  if(!text.trim()){
+  if(!text){
     document.getElementById("output").innerText="Kein Text zum Vereinfachen";
     return;
   }
 
   let result = text
-    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschieden|unterschiedlich)\b/gi,"")
+    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschieden|unterschiedlich|diverse)\b/gi,"")
     .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
-    .replace(/\b(Informationen|Details|Aspekte|Daten)\b/gi,"Infos")
+    .replace(/\b(Informationen|Details|Aspekte|Daten|Sachen)\b/gi,"Infos")
     .replace(/\s+/g," ")
     .trim();
+
+  if(result.length < 5) result = text.split(" ").slice(0,10).join(" ");
 
   document.getElementById("output").innerText =
     "VEREINFACHT:\n\n" + result;
 }
 
-/* ✔ ZUSAMMENFASSEN FIX */
+/* ✔ ZUSAMMENFASSEN FINAL FIX */
 function summarizeText(){
-  let text = lastResult || document.getElementById("text").value || "";
+  let text = (lastResult || document.getElementById("text").value || "").trim();
 
-  if(!text.trim()){
+  if(!text){
     document.getElementById("output").innerText="Kein Text zum Zusammenfassen";
     return;
   }
 
-  let sentences = text.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);
+  let sentences = text.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
 
   if(sentences.length <= 1){
     document.getElementById("output").innerText=text;
@@ -250,18 +252,17 @@ function summarizeText(){
     sentences[0],
     sentences[Math.floor(sentences.length/2)],
     sentences[sentences.length-1]
-  ].filter(Boolean);
+  ];
 
   document.getElementById("output").innerText =
-    "ZUSAMMENFASSUNG:\n\n" + summary.join(". ") + ".";
+    "ZUSAMMENFASSUNG:\n\n" + summary.join(". ");
 }
 
-/* MENU */
+/* MENU + CHAT */
 function toggleMenu(){
   document.getElementById("menu").classList.toggle("hidden");
 }
 
-/* CHAT */
 function sendChat(){
   let msg=document.getElementById("chatInput").value;
   if(!msg) return;
