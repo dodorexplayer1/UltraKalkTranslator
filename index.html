@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra Translator Pro V2</title>
+  <title>Ultra Translator</title>
 
   <style>
     body {
@@ -20,11 +20,11 @@
       padding: 20px;
       border-radius: 15px;
       width: 90%;
-      max-width: 500px;
+      max-width: 450px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    textarea, select, input, button {
+    textarea, select, button {
       width: 100%;
       margin-top: 10px;
       padding: 10px;
@@ -57,13 +57,21 @@
 <body>
 
 <div class="card">
-  <h2>Ultra Translator Pro V2</h2>
+  <h2>Ultra Translator</h2>
 
   <textarea id="text" placeholder="Text eingeben"></textarea>
 
-  <input id="search" placeholder="Sprache suchen..." onkeyup="filterLanguages()">
-
-  <select id="lang"></select>
+  <select id="lang">
+    <option value="en">Englisch</option>
+    <option value="es">Spanisch</option>
+    <option value="fr">Französisch</option>
+    <option value="it">Italienisch</option>
+    <option value="tr">Türkisch</option>
+    <option value="ru">Russisch</option>
+    <option value="ar">Arabisch</option>
+    <option value="zh">Chinesisch</option>
+    <option value="ja">Japanisch</option>
+  </select>
 
   <button onclick="translateText()">Übersetzen</button>
 
@@ -71,44 +79,6 @@
 </div>
 
 <script>
-let allLanguages = {};
-
-async function loadLanguages() {
-  try {
-    let res = await fetch("https://libretranslate.de/languages");
-    let data = await res.json();
-
-    allLanguages = data;
-
-    renderLanguages(data);
-  } catch (e) {
-    document.getElementById("output").innerText =
-      "Fehler: Sprachen konnten nicht geladen werden";
-  }
-}
-
-function renderLanguages(list) {
-  let select = document.getElementById("lang");
-  select.innerHTML = "";
-
-  list.forEach(lang => {
-    let option = document.createElement("option");
-    option.value = lang.code;
-    option.textContent = lang.name;
-    select.appendChild(option);
-  });
-}
-
-function filterLanguages() {
-  let input = document.getElementById("search").value.toLowerCase();
-
-  let filtered = allLanguages.filter(lang =>
-    lang.name.toLowerCase().includes(input)
-  );
-
-  renderLanguages(filtered);
-}
-
 async function translateText() {
   let text = document.getElementById("text").value;
   let lang = document.getElementById("lang").value;
@@ -119,29 +89,21 @@ async function translateText() {
   }
 
   try {
-    let response = await fetch("https://libretranslate.de/translate", {
-      method: "POST",
-      body: JSON.stringify({
-        q: text,
-        source: "de",
-        target: lang,
-        format: "text"
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
+    let response = await fetch(
+      "https://api.mymemory.translated.net/get?q="
+      + encodeURIComponent(text)
+      + "&langpair=de|" + lang
+    );
 
     let data = await response.json();
 
     document.getElementById("output").innerText =
-      data.translatedText;
-
+      data.responseData.translatedText;
   } catch (e) {
     document.getElementById("output").innerText =
       "Fehler beim Übersetzen";
   }
 }
-
-window.onload = loadLanguages;
 </script>
 
 </body>
