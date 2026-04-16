@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra Translator B - Big Languages</title>
+  <title>Ultra Translator 100+ Full</title>
 
   <style>
     body {
@@ -68,7 +68,7 @@
 <body>
 
 <div class="card">
-  <h2>Ultra Translator B (Big Languages)</h2>
+  <h2>Ultra Translator 100+ Full</h2>
 
   <textarea id="text" placeholder="Text eingeben"></textarea>
 
@@ -89,7 +89,7 @@
 
 let lastResult = "";
 
-/* 🌍 GROßE FESTE SPRACHLISTE (100+ realistisch erweitert) */
+/* 🌍 100+ feste Sprachen (stabil & komplett im Code) */
 const languages = {
   af:"Afrikaans", sq:"Albanisch", am:"Amharisch", ar:"Arabisch",
   hy:"Armenisch", az:"Aserbaidschanisch", eu:"Baskisch", be:"Belarussisch",
@@ -171,34 +171,54 @@ async function translateText(){
   }
 }
 
-/* 🧠 Vereinfachen */
+/* 🧠 VEREINFACHEN (FIXED) */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value;
 
-  document.getElementById("output").innerText =
-    text.replace(/kompliziert|schwierig|durchgeführt|implementiert/gi,"gemacht")
-        .replace(/Kommunikation/gi,"Austausch")
-        .replace(/Transformation/gi,"Veränderung")
-        .replace(/andererseits|daher|deshalb/gi,"aber");
-}
-
-/* 🧠 Zusammenfassen */
-function summarizeText(){
-  let text = lastResult || document.getElementById("text").value;
-
-  let sentences = text.split(".").filter(s => s.trim().length > 10);
-
-  if(sentences.length <= 2){
-    document.getElementById("output").innerText = text;
+  if(!text){
+    document.getElementById("output").innerText = "Kein Text vorhanden";
     return;
   }
 
-  let summary =
-    sentences[0] + ". " +
-    sentences[Math.floor(sentences.length/2)] + ". " +
-    sentences[sentences.length-1] + ".";
+  let result = text
+    .replace(/kompliziert|schwierig|durchgeführt|implementiert|Transformation/gi,"gemacht")
+    .replace(/Kommunikation/gi,"Austausch")
+    .replace(/andererseits|daher|deshalb|somit/gi,"aber")
+    .replace(/\s+/g," ")
+    .trim();
 
-  document.getElementById("output").innerText = summary;
+  document.getElementById("output").innerText =
+    "VEREINFACHT:\n\n" + result;
+}
+
+/* 🧠 ZUSAMMENFASSEN (FIXED) */
+function summarizeText(){
+  let text = lastResult || document.getElementById("text").value;
+
+  if(!text){
+    document.getElementById("output").innerText = "Kein Text vorhanden";
+    return;
+  }
+
+  let sentences = text
+    .split(".")
+    .map(s => s.trim())
+    .filter(s => s.length > 10);
+
+  if(sentences.length <= 2){
+    document.getElementById("output").innerText =
+      "ZUSAMMENFASSUNG:\n\n" + text;
+    return;
+  }
+
+  let summary = [
+    sentences[0],
+    sentences[Math.floor(sentences.length / 2)],
+    sentences[sentences.length - 1]
+  ].join(". ") + ".";
+
+  document.getElementById("output").innerText =
+    "ZUSAMMENFASSUNG:\n\n" + summary;
 }
 
 window.onload = loadLanguages;
