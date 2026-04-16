@@ -210,7 +210,7 @@ async function translateText(){
   }
 }
 
-/* ✔ FIXED SIMPLIFY */
+/* ✔ VEREINFACHEN FIX */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -220,7 +220,7 @@ function simplifyText(){
   }
 
   let result = text
-    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschiedene|unterschiedlich)\b/gi,"")
+    .replace(/\b(sehr|wirklich|ziemlich|eigentlich|relativ|komplex|verschieden|unterschiedlich)\b/gi,"")
     .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
     .replace(/\b(Informationen|Details|Aspekte|Daten)\b/gi,"Infos")
     .replace(/\s+/g," ")
@@ -230,7 +230,7 @@ function simplifyText(){
     "VEREINFACHT:\n\n" + result;
 }
 
-/* ✔ FIXED SUMMARIZE */
+/* ✔ ZUSAMMENFASSEN FIX */
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -246,24 +246,20 @@ function summarizeText(){
     return;
   }
 
-  let keep = [
+  let summary = [
     sentences[0],
     sentences[Math.floor(sentences.length/2)],
     sentences[sentences.length-1]
-  ];
+  ].filter(Boolean);
 
   document.getElementById("output").innerText =
-    "ZUSAMMENFASSUNG:\n\n" + keep.join(". ") + ".";
+    "ZUSAMMENFASSUNG:\n\n" + summary.join(". ") + ".";
 }
 
 /* MENU */
 function toggleMenu(){
   document.getElementById("menu").classList.toggle("hidden");
 }
-function openSettings(){document.getElementById("output").innerText="Settings";}
-function openLogin(){document.getElementById("output").innerText="Login";}
-function openSupport(){document.getElementById("output").innerText="Support";}
-function openRules(){document.getElementById("output").innerText="Regeln";}
 
 /* CHAT */
 function sendChat(){
