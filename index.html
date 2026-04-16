@@ -1,26 +1,135 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra Translator</title>
+  <title>Ultra Translator Pro</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    textarea, input, select, button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    #output {
+      margin-top: 15px;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 8px;
+      min-height: 40px;
+    }
+
+    select {
+      max-height: 150px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>Ultra Online Translator</h1>
+<div class="card">
+  <h2>Ultra Translator Pro</h2>
 
-<textarea id="text" placeholder="Text eingeben"></textarea>
+  <textarea id="text" placeholder="Text eingeben"></textarea>
 
-<select id="lang">
-  <option value="en">Englisch</option>
-  <option value="es">Spanisch</option>
-  <option value="fr">Französisch</option>
-  <option value="it">Italienisch</option>
-</select>
+  <input id="searchLang" placeholder="Sprache suchen..." onkeyup="filterLanguages()">
 
-<button onclick="translateText()">Übersetzen</button>
+  <select id="lang"></select>
 
-<p id="output"></p>
+  <button onclick="translateText()">Übersetzen</button>
+
+  <div id="output"></div>
+</div>
 
 <script>
+const languages = {
+  en: "Englisch",
+  es: "Spanisch",
+  fr: "Französisch",
+  it: "Italienisch",
+  tr: "Türkisch",
+  ar: "Arabisch",
+  ru: "Russisch",
+  zh: "Chinesisch",
+  ja: "Japanisch",
+  ko: "Koreanisch",
+  pt: "Portugiesisch",
+  nl: "Niederländisch",
+  sv: "Schwedisch",
+  pl: "Polnisch",
+  el: "Griechisch",
+  cs: "Tschechisch",
+  da: "Dänisch",
+  fi: "Finnisch",
+  hi: "Hindi",
+  ro: "Rumänisch",
+  hu: "Ungarisch",
+  de: "Deutsch",
+  bg: "Bulgarisch",
+  uk: "Ukrainisch",
+  he: "Hebräisch"
+};
+
+function loadLanguages() {
+  let select = document.getElementById("lang");
+  select.innerHTML = "";
+
+  for (let code in languages) {
+    let option = document.createElement("option");
+    option.value = code;
+    option.textContent = languages[code];
+    select.appendChild(option);
+  }
+}
+
+function filterLanguages() {
+  let input = document.getElementById("searchLang").value.toLowerCase();
+  let select = document.getElementById("lang");
+  select.innerHTML = "";
+
+  for (let code in languages) {
+    if (languages[code].toLowerCase().includes(input)) {
+      let option = document.createElement("option");
+      option.value = code;
+      option.textContent = languages[code];
+      select.appendChild(option);
+    }
+  }
+}
+
 async function translateText() {
   let text = document.getElementById("text").value;
   let lang = document.getElementById("lang").value;
@@ -42,9 +151,11 @@ async function translateText() {
       data.responseData.translatedText;
   } catch (e) {
     document.getElementById("output").innerText =
-      "Fehler: Übersetzung nicht möglich";
+      "Fehler beim Übersetzen";
   }
 }
+
+window.onload = loadLanguages;
 </script>
 
 </body>
