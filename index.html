@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultra Translator 50 Fixed</title>
+  <title>Ultra Translator 50 Stable</title>
 
   <style>
     body {
@@ -68,7 +68,7 @@
 <body>
 
 <div class="card">
-  <h2>Ultra Translator 50 Fixed</h2>
+  <h2>Ultra Translator 50 Stable</h2>
 
   <textarea id="text" placeholder="Text eingeben"></textarea>
 
@@ -89,7 +89,7 @@
 
 let lastResult = "";
 
-/* 🌍 EXAKT 50 SPRACHEN (fix gespeichert) */
+/* 🌍 50 stabile Sprachen (fix behalten wie gewünscht) */
 const languages = {
   en:"Englisch",
   de:"Deutsch",
@@ -143,15 +143,17 @@ const languages = {
   yo:"Yoruba"
 };
 
-/* LOAD */
+/* 🌍 LOAD (sicher + stabil) */
 function loadLanguages(){
-  let from = document.getElementById("fromLang");
-  let to = document.getElementById("toLang");
+  const from = document.getElementById("fromLang");
+  const to = document.getElementById("toLang");
+
+  if(!from || !to) return;
 
   from.innerHTML = "";
   to.innerHTML = "";
 
-  for(let code in languages){
+  Object.keys(languages).forEach(code => {
     let o1 = document.createElement("option");
     let o2 = document.createElement("option");
 
@@ -163,10 +165,10 @@ function loadLanguages(){
 
     from.appendChild(o1);
     to.appendChild(o2);
-  }
+  });
 }
 
-/* TRANSLATE */
+/* 🌍 TRANSLATE */
 async function translateText(){
   let text = document.getElementById("text").value;
   let from = document.getElementById("fromLang").value;
@@ -178,17 +180,18 @@ async function translateText(){
   }
 
   try{
-    let res = await fetch(
+    let url =
       "https://api.mymemory.translated.net/get?q="
       + encodeURIComponent(text)
-      + "&langpair=" + from + "|" + to
-    );
+      + "&langpair=" + from + "|" + to;
 
+    let res = await fetch(url);
     let data = await res.json();
 
-    lastResult = data.responseData.translatedText;
+    lastResult = data?.responseData?.translatedText || "";
 
-    document.getElementById("output").innerText = lastResult;
+    document.getElementById("output").innerText =
+      lastResult || "Keine Übersetzung erhalten";
 
   }catch(e){
     document.getElementById("output").innerText =
@@ -196,7 +199,7 @@ async function translateText(){
   }
 }
 
-/* 🧠 VEREINFACHEN (stark sichtbar reduziert) */
+/* 🧠 VEREINFACHEN (sichtbar verändert) */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value;
 
@@ -208,13 +211,11 @@ function simplifyText(){
   let sentences = text.split(".").map(s => s.trim()).filter(Boolean);
 
   let simplified = sentences.map(s =>
-    s
-      .replace(/sehr|wirklich|ziemlich|eigentlich|relativ/gi,"")
-      .replace(/durchgeführt|implementiert|Transformation/gi,"gemacht")
-      .replace(/Kommunikation/gi,"Austausch")
-      .replace(/Informationen?/gi,"Infos")
-      .replace(/\s+/g," ")
-      .trim()
+    s.replace(/sehr|wirklich|ziemlich|eigentlich|relativ/gi,"")
+     .replace(/Kommunikation/gi,"Austausch")
+     .replace(/Informationen?/gi,"Infos")
+     .replace(/\s+/g," ")
+     .trim()
   );
 
   simplified = simplified.slice(0, Math.max(1, Math.ceil(simplified.length / 2)));
@@ -223,7 +224,7 @@ function simplifyText(){
     "VEREINFACHT:\n\n" + simplified.join(". ");
 }
 
-/* 🧠 ZUSAMMENFASSEN (wirklich kürzer) */
+/* 🧠 ZUSAMMENFASSEN (klar kürzer) */
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value;
 
@@ -243,6 +244,18 @@ function summarizeText(){
     return;
   }
 
-  let keepCount = Math.max(1, Math.ceil(sentences.length * 0.25));
+  let keep = Math.max(1, Math.ceil(sentences.length * 0.25));
 
-  let summary = sentences.slice(0, keep
+  let summary = sentences.slice(0, keep).join(". ");
+
+  document.getElementById("output").innerText =
+    "ZUSAMMENFASSUNG:\n\n" + summary + ".";
+}
+
+/* 🔥 garantiert stabile Initialisierung */
+document.addEventListener("DOMContentLoaded", loadLanguages);
+
+</script>
+
+</body>
+</html>
