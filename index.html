@@ -208,7 +208,6 @@
     <div id="menuInfo"></div>
     <button onclick="openSettings()">Settings</button>
     <button onclick="openHelp()">Help</button>
-    <button onclick="openInfo()">Info</button>
     <button onclick="logout()">Logout</button>
   </div>
 
@@ -274,17 +273,15 @@ let chatOpen=false;
 let chatUnlocked=false;
 let imageUnlocked=false;
 
-let lastTranslated="";
-let translationHistory=[];
-
 const CHAT_CODE="$01$";
 const IMAGE_CODE="IloveCodeGeass";
 
-/* ENTER */
+/* APP START */
 function enterApp(){
   loginScreen.style.display="none";
   app.style.display="block";
   loadChat();
+  loadImages();
 }
 
 /* AUTH */
@@ -342,7 +339,7 @@ function toggleChat(){
   chatInputBox.style.display=chatOpen?"block":"none";
 }
 
-/* CHAT FIX SCROLL */
+/* CHAT */
 function loadChat(){
   chatRef.orderBy("time","asc").onSnapshot(s=>{
     const wasBottom =
@@ -351,15 +348,13 @@ function loadChat(){
     chatBox.innerHTML="";
 
     s.forEach(d=>{
-      let div=document.createElement("div");
+      const div=document.createElement("div");
       div.innerText=d.data().user+": "+d.data().text;
       chatBox.appendChild(div);
     });
 
     requestAnimationFrame(()=>{
-      if(wasBottom){
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
+      if(wasBottom) chatBox.scrollTop = chatBox.scrollHeight;
     });
   });
 }
@@ -376,7 +371,7 @@ function sendChat(){
   chatInput.value="";
 }
 
-/* IMAGE CODE FIX */
+/* IMAGE FIX COMPLETE */
 function askImageCode(){
   const c=prompt("What's the code?");
   if(c===IMAGE_CODE){
@@ -389,37 +384,56 @@ function uploadImage(){
   if(!imageUnlocked) return;
 
   const file=imgUpload.files[0];
-  const r=new FileReader();
+  if(!file) return;
 
-  r.onload=()=>{
+  const reader=new FileReader();
+
+  reader.onload=()=>{
     imgRef.add({
-      img:r.result,
+      img:reader.result,
       user:currentUsername||guestUser||"anon",
       time:Date.now()
     });
   };
 
-  r.readAsDataURL(file);
+  reader.readAsDataURL(file);
 }
 
-/* TRANSLATE */
+function loadImages(){
+  imgRef.orderBy("time","desc").onSnapshot(s=>{
+    gallery.innerHTML="";
+
+    s.forEach(d=>{
+      const data=d.data();
+
+      const img=document.createElement("img");
+      img.src=data.img;
+
+      const div=document.createElement("div");
+      div.innerText=data.user;
+
+      gallery.appendChild(div);
+      gallery.appendChild(img);
+    });
+  });
+}
+
+/* TRANSLATOR */
 async function translateText(){
   const res=await fetch(
     `https://api.mymemory.translated.net/get?q=${text.value}&langpair=${fromLang.value}|${toLang.value}`
   );
 
   const data=await res.json();
-  lastTranslated=data.responseData.translatedText;
-
-  output.innerText=lastTranslated;
+  output.innerText=data.responseData.translatedText;
 }
 
 function simplifyText(){
-  output.innerText="SIMPLIFIED:\n"+(lastTranslated||text.value).split(".")[0];
+  output.innerText=text.value.split(".")[0];
 }
 
 function summarizeText(){
-  output.innerText="SUMMARY:\n"+(lastTranslated||text.value).split(" ").slice(0,20).join(" ")+"...";
+  output.innerText=text.value.split(" ").slice(0,20).join(" ")+"...";
 }
 
 /* MENU INFO */
@@ -427,22 +441,14 @@ setInterval(()=>{
   const r=new Date();
   r.setHours(24,0,0,0);
 
-  menuInfo.innerText =
-`Reset: ${Math.floor((r-new Date())/3600000)}h
-Recent: ${translationHistory[0]?.from||"none"}`;
+  menuInfo.innerText=
+`Reset: ${Math.floor((r-new Date())/3600000)}h`;
 },1000);
 
-/* LANGS (FULL 50+) */
+/* LANGS */
 const languages={
 en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",
-pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch",
-ar:"Arabisch",hi:"Hindi",tr:"Türkisch",nl:"Niederländisch",pl:"Polnisch",
-uk:"Ukrainisch",sv:"Schwedisch",da:"Dänisch",fi:"Finnisch",no:"Norwegisch",
-cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",
-vi:"Vietnamesisch",id:"Indonesisch",ms:"Malaiisch",tl:"Filipino",
-sw:"Swahili",ta:"Tamil",te:"Telugu",ml:"Malayalam",kn:"Kannada",
-bn:"Bengalisch",ur:"Urdu",fa:"Persisch",ne:"Nepalesisch",si:"Singhalesisch",
-my:"Burmesisch",km:"Khmer",lo:"Laotisch",am:"Amharisch",so:"Somali",zu:"Zulu"
+pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch"
 };
 
 for(let l in languages){
