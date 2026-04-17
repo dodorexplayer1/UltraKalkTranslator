@@ -92,6 +92,7 @@
       padding:10px;
       border-radius:10px;
       display:none;
+      scroll-behavior:smooth;
     }
 
     #chatInputBox{
@@ -307,14 +308,14 @@ function toggleChat(){
   chatInputBox.style.display=chatOpen?"block":"none";
 }
 
-/* CHAT FIX SCROLL */
+/* CHAT FIX FINAL */
 function loadChat(){
-  chatRef.onSnapshot(snap=>{
+  chatRef.orderBy("time","asc").onSnapshot(snap=>{
     const box=document.getElementById("chatBox");
     if(!box) return;
 
-    const isAtBottom =
-      box.scrollTop + box.clientHeight >= box.scrollHeight - 10;
+    const wasAtBottom =
+      box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
 
     box.innerHTML="";
     messageCount=0;
@@ -324,14 +325,18 @@ function loadChat(){
       messageCount++;
 
       const div=document.createElement("div");
+      div.style.padding="4px";
       div.innerText=data.user+": "+data.text;
       box.appendChild(div);
     });
 
     updateMenuInfo();
 
-    if(isAtBottom){
-      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+    // 🔥 SMART AUTO SCROLL
+    if(wasAtBottom){
+      requestAnimationFrame(()=>{
+        box.scrollTop = box.scrollHeight;
+      });
     }
   });
 }
@@ -375,6 +380,12 @@ function sendChat(){
   });
 
   chatInput.value="";
+
+  // 🔥 sofort runter scrollen
+  const box=document.getElementById("chatBox");
+  requestAnimationFrame(()=>{
+    box.scrollTop = box.scrollHeight;
+  });
 }
 
 /* TRANSLATE */
@@ -416,7 +427,7 @@ function openSettings(){
 }
 
 function openHelp(){
-  output.innerText="🆘 Hilfe & Support";
+  output.innerText="🆘 Help & Support";
 }
 
 function showFacts(){
