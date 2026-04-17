@@ -80,7 +80,7 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
-    /* CHAT */
+    /* CHAT FIXED */
     #chatBox{
       position:fixed;
       bottom:140px;
@@ -88,10 +88,12 @@
       width:260px;
       height:260px;
       overflow-y:auto;
+      overflow-x:hidden;
       background:#111827;
       padding:10px;
       border-radius:10px;
       display:none;
+      scroll-behavior:smooth;
     }
 
     #chatInputBox{
@@ -146,13 +148,13 @@
       margin-bottom:10px;
     }
 
-    /* IMAGE */
+    /* IMAGE FIXED */
     #imagePanel{
       display:none;
       position:fixed;
-      top:70px;
+      top:50%;
       left:50%;
-      transform:translateX(-50%);
+      transform:translate(-50%,-50%);
       width:320px;
       background:#111827;
       padding:10px;
@@ -278,7 +280,7 @@ let imageUnlocked=false;
 const CHAT_CODE="$01$";
 const IMAGE_CODE="IloveCodeGeass";
 
-/* ENTER */
+/* ENTER APP */
 function enterApp(){
   loginScreen.style.display="none";
   app.style.display="block";
@@ -327,25 +329,13 @@ function toggleMenu(){
   menu.style.display = menu.style.display==="block"?"none":"block";
 }
 
-/* CHAT */
-function toggleChat(){
-  if(!chatUnlocked){
-    const c=prompt("Chat Code?");
-    if(c===CHAT_CODE) chatUnlocked=true;
-    else return;
-  }
-
-  chatOpen=!chatOpen;
-  chatBox.style.display=chatOpen?"block":"none";
-  chatInputBox.style.display=chatOpen?"block":"none";
-
-  if(chatOpen){
-    setTimeout(()=>chatBox.scrollTop=chatBox.scrollHeight,50);
-  }
-}
-
+/* CHAT FIX (REAL STABLE SCROLL) */
 function loadChat(){
   chatRef.orderBy("time","asc").onSnapshot(s=>{
+
+    const shouldStick =
+      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 50;
+
     chatBox.innerHTML="";
 
     s.forEach(d=>{
@@ -354,10 +344,28 @@ function loadChat(){
       chatBox.appendChild(div);
     });
 
-    setTimeout(()=>{
-      chatBox.scrollTop=chatBox.scrollHeight;
-    },50);
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        if(shouldStick){
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    });
+
   });
+}
+
+function toggleChat(){
+  if(!chatUnlocked){
+    const c=prompt("Chat Code?");
+    if(c===CHAT_CODE) chatUnlocked=true;
+    else return;
+  }
+
+  chatOpen=!chatOpen;
+
+  chatBox.style.display=chatOpen?"block":"none";
+  chatInputBox.style.display=chatOpen?"block":"none";
 }
 
 function sendChat(){
@@ -372,7 +380,7 @@ function sendChat(){
   chatInput.value="";
 }
 
-/* IMAGE */
+/* IMAGE FIX */
 function askImageCode(){
   const c=prompt("What's the code?");
   if(c===IMAGE_CODE){
@@ -387,15 +395,17 @@ function uploadImage(){
   const file=imgUpload.files[0];
   if(!file) return;
 
-  const r=new FileReader();
-  r.onload=()=>{
+  const reader=new FileReader();
+
+  reader.onload=()=>{
     imgRef.add({
-      img:r.result,
+      img:reader.result,
       user:currentUsername||guestUser||"anon",
       time:Date.now()
     });
   };
-  r.readAsDataURL(file);
+
+  reader.readAsDataURL(file);
 }
 
 function loadImages(){
@@ -405,11 +415,11 @@ function loadImages(){
     s.forEach(d=>{
       const data=d.data();
 
-      const img=document.createElement("img");
-      img.src=data.img;
-
       const u=document.createElement("div");
       u.innerText=data.user;
+
+      const img=document.createElement("img");
+      img.src=data.img;
 
       gallery.appendChild(u);
       gallery.appendChild(img);
@@ -437,7 +447,7 @@ function summarizeText(){
 
 /* MENU INFO */
 setInterval(()=>{
-  menuInfo.innerText="System Active\nUsers Connected: Live";
+  menuInfo.innerText="System Active\nChat + Image Online";
 },1000);
 
 /* LANGS */
