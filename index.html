@@ -58,7 +58,8 @@
     }
 
     textarea{
-      min-height:90px;
+      min-height:140px;
+      font-size:16px;
       background:#111827;
       color:white;
     }
@@ -69,11 +70,13 @@
     }
 
     #output{
-      margin-top:10px;
-      padding:10px;
+      margin-top:15px;
+      padding:15px;
       background:#111827;
-      border-radius:8px;
-      min-height:60px;
+      border-radius:10px;
+      min-height:140px;
+      font-size:18px;
+      line-height:1.5;
       white-space:pre-line;
     }
 
@@ -103,8 +106,8 @@
       position:fixed;
       bottom:140px;
       right:10px;
-      width:260px;
-      height:260px;
+      width:280px;
+      height:280px;
       overflow-y:auto;
       background:#111827;
       padding:10px;
@@ -116,7 +119,7 @@
       position:fixed;
       bottom:70px;
       right:10px;
-      width:260px;
+      width:280px;
       background:#111827;
       padding:10px;
       border-radius:10px;
@@ -140,7 +143,7 @@
     /* UPLOAD */
     #uploadBtn{
       position:fixed;
-      bottom:85px;
+      bottom:80px;
       left:50%;
       transform:translateX(-50%);
     }
@@ -151,26 +154,19 @@
       top:50%;
       left:50%;
       transform:translate(-50%,-50%);
-      width:320px;
+      width:340px;
       background:#111827;
       padding:10px;
       border-radius:10px;
-      z-index:999;
       max-height:70vh;
       overflow-y:auto;
+      z-index:999;
     }
 
     #gallery img{
       width:100%;
       margin-top:10px;
       border-radius:8px;
-    }
-
-    #pages{
-      display:flex;
-      gap:5px;
-      flex-wrap:wrap;
-      margin-top:10px;
     }
   </style>
 </head>
@@ -191,8 +187,8 @@
 
     <hr>
 
-    <input id="guestName" placeholder="Gast Username">
-    <button onclick="guestLogin()">Als Gast</button>
+    <input id="guestName" placeholder="Guest">
+    <button onclick="guestLogin()">Continue</button>
   </div>
 </div>
 
@@ -205,6 +201,7 @@
     <button onclick="openSettings()">Settings</button>
     <button onclick="openHelp()">Help</button>
     <button onclick="openInfo()">Info</button>
+    <button onclick="logout()">Logout</button>
   </div>
 
   <h2>Ultra Translator 50 Global</h2>
@@ -232,8 +229,8 @@
   <div id="chatBox"></div>
 
   <div id="chatInputBox">
-    <input id="chatInput" placeholder="Nachricht...">
-    <button onclick="sendChat()">Senden</button>
+    <input id="chatInput" placeholder="Message">
+    <button onclick="sendChat()">Send</button>
   </div>
 
   <div id="chatToggle" onclick="toggleChat()">💬</div>
@@ -241,20 +238,14 @@
 
 <!-- IMAGE -->
 <div id="imagePanel">
-
   <button onclick="closeUpload()">Close</button>
-
   <input type="file" id="imgUpload">
   <button onclick="uploadImage()">Upload</button>
-
-  <div id="pages"></div>
   <div id="gallery"></div>
-
 </div>
 
 <script>
 
-/* FIREBASE */
 firebase.initializeApp({
   apiKey:"AIzaSyAjS5W-l2Hm_iBSq4_az2WReQwY4ZmEweU",
   authDomain:"projekt-erstellen-dfc13.firebaseapp.com",
@@ -271,16 +262,14 @@ const imgRef=db.collection("images");
 let isGuest=false;
 let guestUser="";
 let currentUsername="";
+let chatUnlocked=false;
 let uploadUnlocked=false;
-
-let pageSize=4;
-let currentPage=1;
 let lastText="";
 
 /* MENU */
 function toggleMenu(){
   const m=document.getElementById("menu");
-  m.style.display = m.style.display==="block" ? "none":"block";
+  m.style.display = m.style.display==="block"?"none":"block";
 }
 
 /* LOGIN */
@@ -298,51 +287,51 @@ function register(){
   });
 }
 
-function guestLogin(){
-  isGuest=true;
-  guestUser=guestName.value;
+function logout(){
+  auth.signOut();
+  isGuest=false;
+  guestUser="";
 }
 
-/* AUTH */
-auth.onAuthStateChanged(u=>{
-  if(u || isGuest){
-    loginScreen.style.display="none";
-    app.style.display="block";
-    loadChat();
-    loadImages();
-  }else{
-    loginScreen.style.display="flex";
-    app.style.display="none";
+/* CHAT CODE $01$ */
+function toggleChat(){
+
+  if(!chatUnlocked){
+    const c=prompt("Global Chat Code?");
+    if(c!=="$01$") return;
+    chatUnlocked=true;
   }
-});
+
+  const open=chatBox.style.display==="block";
+  chatBox.style.display=open?"none":"block";
+  chatInputBox.style.display=open?"none":"block";
+
+  requestAnimationFrame(()=>{
+    chatBox.scrollTop=chatBox.scrollHeight;
+  });
+}
 
 /* CHAT */
 function loadChat(){
-
   chatRef.orderBy("time","asc").onSnapshot(snap=>{
-
-    const box=document.getElementById("chatBox");
+    const box=chatBox;
 
     const atBottom =
-      box.scrollTop + box.clientHeight >= box.scrollHeight - 60;
+      box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
 
     box.innerHTML="";
 
     snap.forEach(d=>{
-      const data=d.data();
       const div=document.createElement("div");
-      div.innerText=(data.user||"anon")+": "+data.text;
+      div.innerText=(d.data().user||"anon")+": "+d.data().text;
       box.appendChild(div);
     });
 
     requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        if(atBottom){
-          box.scrollTop=box.scrollHeight;
-        }
-      });
+      if(atBottom || chatUnlocked){
+        box.scrollTop=box.scrollHeight;
+      }
     });
-
   });
 }
 
@@ -358,21 +347,11 @@ function sendChat(){
   chatInput.value="";
 }
 
-function toggleChat(){
-  const open=chatBox.style.display==="block";
-  chatBox.style.display=open?"none":"block";
-  chatInputBox.style.display=open?"none":"block";
-
-  requestAnimationFrame(()=>{
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
-}
-
-/* UPLOAD */
+/* UPLOAD CODE $00$ */
 function openUpload(){
   if(!uploadUnlocked){
-    const code=prompt("Upload Code?");
-    if(code!=="$00$") return;
+    const c=prompt("Upload Code?");
+    if(c!=="$00$") return;
     uploadUnlocked=true;
   }
   imagePanel.style.display="block";
@@ -382,69 +361,19 @@ function closeUpload(){
   imagePanel.style.display="none";
 }
 
-/* IMAGE */
 function uploadImage(){
   const file=imgUpload.files[0];
   if(!file) return;
 
-  const reader=new FileReader();
-  reader.onload=()=>{
+  const r=new FileReader();
+  r.onload=()=>{
     imgRef.add({
-      img:reader.result,
+      img:r.result,
       user:currentUsername||guestUser||"anon",
       time:Date.now()
     });
   };
-  reader.readAsDataURL(file);
-}
-
-/* PAGINATION */
-function loadImages(){
-
-  imgRef.orderBy("time","desc").onSnapshot(s=>{
-
-    const all=[];
-    s.forEach(d=>all.push({id:d.id,...d.data()}));
-
-    const start=(currentPage-1)*pageSize;
-    const page=all.slice(start,start+pageSize);
-
-    gallery.innerHTML="";
-
-    page.forEach(x=>{
-      const wrap=document.createElement("div");
-
-      const img=document.createElement("img");
-      img.src=x.img;
-
-      const del=document.createElement("button");
-      del.innerText="Delete";
-      del.onclick=()=>imgRef.doc(x.id).delete();
-
-      wrap.appendChild(img);
-      wrap.appendChild(del);
-
-      gallery.appendChild(wrap);
-    });
-
-    renderPages(all.length);
-  });
-}
-
-function renderPages(total){
-  const pages=Math.ceil(total/pageSize);
-  const box=document.getElementById("pages");
-  box.innerHTML="";
-
-  for(let i=1;i<=pages;i++){
-    const b=document.createElement("button");
-    b.innerText=i;
-    b.onclick=()=>{
-      currentPage=i;
-      loadImages();
-    };
-    box.appendChild(b);
-  }
+  r.readAsDataURL(file);
 }
 
 /* TRANSLATE */
@@ -459,29 +388,24 @@ async function translateText(){
   output.innerText=lastText;
 }
 
-/* FIXED FUNCTIONS */
+/* FIX */
 function simplifyText(){
-  const base=output.innerText||text.value;
-  output.innerText=base.split(".")[0];
+  const b=output.innerText||text.value;
+  output.innerText=b.split(".")[0];
 }
 
 function summarizeText(){
-  const base=output.innerText||text.value;
-  output.innerText=base.split(" ").slice(0,25).join(" ")+"...";
+  const b=output.innerText||text.value;
+  output.innerText=b.split(" ").slice(0,25).join(" ")+"...";
 }
 
 /* INFO */
 function openInfo(){
-  output.innerText="System OK\nChat + Upload + Translate active";
+  output.innerText="System OK";
 }
 
-function openSettings(){
-  output.innerText="Settings";
-}
-
-function openHelp(){
-  output.innerText="Help & Support";
-}
+function openSettings(){output.innerText="Settings";}
+function openHelp(){output.innerText="Help";}
 
 /* LANGUAGES FULL */
 const languages={
@@ -497,6 +421,14 @@ for(let l in languages){
   fromLang.add(new Option(languages[l],l));
   toLang.add(new Option(languages[l],l));
 }
+
+auth.onAuthStateChanged(u=>{
+  if(u || isGuest){
+    loginScreen.style.display="none";
+    app.style.display="block";
+    loadChat();
+  }
+});
 
 </script>
 
