@@ -77,9 +77,6 @@
       white-space:pre-line;
     }
 
-    .row{display:flex;gap:10px;}
-    .row button{flex:1;}
-
     /* CHAT */
     #chatBox{
       position:fixed;
@@ -119,42 +116,15 @@
       cursor:pointer;
     }
 
-    /* MENU */
-    #menuBtn{
+    /* UPLOAD */
+    #uploadBtn{
       position:fixed;
-      top:10px;
-      right:10px;
-      font-size:24px;
-      cursor:pointer;
-    }
-
-    #menu{
-      position:fixed;
-      top:40px;
-      right:10px;
-      background:#111827;
-      padding:10px;
-      border-radius:10px;
-      display:none;
-      width:240px;
-    }
-
-    #menuInfo{
-      font-size:12px;
-      opacity:0.85;
-      white-space:pre-line;
-    }
-
-    /* ✅ Upload Button FIX (nicht ganz unten) */
-    #uploadTop{
-      position:fixed;
-      bottom:85px;   /* 👈 Abstand nach oben FIX */
+      bottom:85px;
       left:50%;
       transform:translateX(-50%);
       z-index:999;
     }
 
-    /* IMAGE PANEL */
     #imagePanel{
       display:none;
       position:fixed;
@@ -180,6 +150,7 @@
 
 <body>
 
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="box">
     <h3>Login</h3>
@@ -200,18 +171,12 @@
 
 <div id="app">
 
-  <div id="menuBtn" onclick="toggleMenu()">|||</div>
-
-  <div id="menu">
-    <div id="menuInfo"></div>
-  </div>
-
-  <!-- UPLOAD BUTTON -->
-  <div id="uploadTop">
-    <button onclick="imagePanel.style.display='block'">+ Upload Image</button>
-  </div>
-
   <h2>Ultra Translator 50 Global</h2>
+
+  <!-- UPLOAD -->
+  <div id="uploadBtn">
+    <button onclick="openUpload()">+ Upload Image</button>
+  </div>
 
   <textarea id="text"></textarea>
 
@@ -220,23 +185,19 @@
 
   <button onclick="translateText()">Übersetzen</button>
 
-  <div class="row">
-    <button onclick="simplifyText()">Vereinfachen</button>
-    <button onclick="summarizeText()">Zusammenfassen</button>
+  <div id="output"></div>
+
+  <!-- CHAT -->
+  <div id="chatBox"></div>
+
+  <div id="chatInputBox">
+    <input id="chatInput" placeholder="Nachricht...">
+    <button onclick="sendChat()">Senden</button>
   </div>
 
-  <div id="output"></div>
+  <div id="chatToggle" onclick="toggleChat()">💬</div>
+
 </div>
-
-<!-- CHAT -->
-<div id="chatBox"></div>
-
-<div id="chatInputBox">
-  <input id="chatInput" placeholder="Nachricht...">
-  <button onclick="sendChat()">Senden</button>
-</div>
-
-<div id="chatToggle" onclick="toggleChat()">💬</div>
 
 <!-- IMAGE -->
 <div id="imagePanel">
@@ -264,7 +225,7 @@ const imgRef=db.collection("images");
 let isGuest=false;
 let guestUser="";
 let currentUsername="";
-let lastTranslated="";
+let uploadUnlocked=false;
 
 /* LOGIN */
 function login(){
@@ -298,40 +259,7 @@ function guestLogin(){
   guestUser=guestName.value;
 }
 
-/* MENU */
-function toggleMenu(){
-  menu.style.display = menu.style.display==="block"?"none":"block";
-}
-
-/* 💬 CHAT FIX (100% AUTO SCROLL) */
-function loadChat(){
-  chatRef.orderBy("time","asc").onSnapshot(s=>{
-
-    const atBottom =
-      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 50;
-
-    chatBox.innerHTML="";
-
-    s.forEach(d=>{
-      const data=d.data();
-
-      const div=document.createElement("div");
-      div.innerText=(data.user||"anon")+": "+data.text;
-
-      chatBox.appendChild(div);
-    });
-
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        if(atBottom){
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-      });
-    });
-
-  });
-}
-
+/* CHAT TOGGLE */
 function toggleChat(){
   const open = chatBox.style.display==="block";
   chatBox.style.display=open?"none":"block";
@@ -342,6 +270,37 @@ function toggleChat(){
   });
 }
 
+/* CHAT FIX (STABLE AUTO SCROLL) */
+function loadChat(){
+
+  chatRef.orderBy("time","asc").onSnapshot(snap=>{
+
+    const box=document.getElementById("chatBox");
+
+    const atBottom =
+      box.scrollTop + box.clientHeight >= box.scrollHeight - 80;
+
+    box.innerHTML="";
+
+    snap.forEach(d=>{
+      const data=d.data();
+      const div=document.createElement("div");
+      div.innerText=(data.user||"anon")+": "+data.text;
+      box.appendChild(div);
+    });
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        if(atBottom){
+          box.scrollTop = box.scrollHeight;
+        }
+      });
+    });
+
+  });
+}
+
+/* SEND */
 function sendChat(){
   if(!chatInput.value.trim()) return;
 
@@ -354,13 +313,23 @@ function sendChat(){
   chatInput.value="";
 }
 
-/* IMAGE */
+/* UPLOAD CODE LOCK */
+function openUpload(){
+  if(!uploadUnlocked){
+    const code=prompt("Upload Code?");
+    if(code!=="$00$") return;
+    uploadUnlocked=true;
+  }
+
+  imagePanel.style.display="block";
+}
+
+/* IMAGE UPLOAD */
 function uploadImage(){
   const file=imgUpload.files[0];
   if(!file) return;
 
   const reader=new FileReader();
-
   reader.onload=()=>{
     imgRef.add({
       img:reader.result,
@@ -368,7 +337,6 @@ function uploadImage(){
       time:Date.now()
     });
   };
-
   reader.readAsDataURL(file);
 }
 
@@ -376,15 +344,8 @@ function loadImages(){
   imgRef.orderBy("time","desc").onSnapshot(s=>{
     gallery.innerHTML="";
     s.forEach(d=>{
-      const x=d.data();
-
-      const u=document.createElement("div");
-      u.innerText=x.user;
-
       const img=document.createElement("img");
-      img.src=x.img;
-
-      gallery.appendChild(u);
+      img.src=d.data().img;
       gallery.appendChild(img);
     });
   });
@@ -398,18 +359,7 @@ async function translateText(){
   );
 
   const d=await r.json();
-  lastTranslated=d.responseData.translatedText;
-  output.innerText=lastTranslated;
-}
-
-function simplifyText(){
-  const base=lastTranslated||text.value;
-  output.innerText=base.split(".")[0];
-}
-
-function summarizeText(){
-  const base=lastTranslated||text.value;
-  output.innerText=base.split(" ").slice(0,25).join(" ")+"...";
+  output.innerText=d.responseData.translatedText;
 }
 
 /* LANGS */
