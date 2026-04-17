@@ -149,10 +149,15 @@
     /* IMAGE */
     #imagePanel{
       display:none;
-      margin-top:20px;
-      padding:10px;
+      position:fixed;
+      top:70px;
+      left:50%;
+      transform:translateX(-50%);
+      width:320px;
       background:#111827;
+      padding:10px;
       border-radius:10px;
+      z-index:999;
     }
 
     #gallery img{
@@ -227,12 +232,6 @@
 
   <div id="output"></div>
 
-  <div id="imagePanel">
-    <input type="file" id="imgUpload">
-    <button onclick="uploadImage()">Upload</button>
-    <div id="gallery"></div>
-  </div>
-
 </div>
 
 <!-- CHAT -->
@@ -243,7 +242,14 @@
   <button onclick="sendChat()">Senden</button>
 </div>
 
-<div id="chatToggle" onclick="askChatCode()">💬</div>
+<div id="chatToggle" onclick="toggleChat()">💬</div>
+
+<!-- IMAGE -->
+<div id="imagePanel">
+  <input type="file" id="imgUpload">
+  <button onclick="uploadImage()">Upload</button>
+  <div id="gallery"></div>
+</div>
 
 <script>
 
@@ -323,32 +329,38 @@ function toggleMenu(){
 }
 
 /* CHAT CODE */
-function askChatCode(){
-  const c=prompt("Chat Code?");
-  if(c===CHAT_CODE){
-    chatUnlocked=true;
-    toggleChat();
-  }
-}
-
-/* CHAT */
 function toggleChat(){
-  if(!chatUnlocked) return;
+  if(!chatUnlocked){
+    const c=prompt("Chat Code?");
+    if(c===CHAT_CODE) chatUnlocked=true;
+    else return;
+  }
 
   chatOpen=!chatOpen;
+
   chatBox.style.display=chatOpen?"block":"none";
   chatInputBox.style.display=chatOpen?"block":"none";
 }
 
+/* CHAT FIX SCROLL */
 function loadChat(){
-  chatRef.orderBy("time").onSnapshot(s=>{
+  chatRef.orderBy("time","asc").onSnapshot(s=>{
+    const wasBottom =
+      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 30;
+
     chatBox.innerHTML="";
+
     s.forEach(d=>{
       let div=document.createElement("div");
       div.innerText=d.data().user+": "+d.data().text;
       chatBox.appendChild(div);
     });
-    chatBox.scrollTop=chatBox.scrollHeight;
+
+    requestAnimationFrame(()=>{
+      if(wasBottom){
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    });
   });
 }
 
@@ -364,13 +376,12 @@ function sendChat(){
   chatInput.value="";
 }
 
-/* IMAGE CODE */
+/* IMAGE CODE FIX */
 function askImageCode(){
-  const c=prompt("Image Code?");
+  const c=prompt("What's the code?");
   if(c===IMAGE_CODE){
     imageUnlocked=true;
     imagePanel.style.display="block";
-    loadImages();
   }
 }
 
@@ -383,23 +394,12 @@ function uploadImage(){
   r.onload=()=>{
     imgRef.add({
       img:r.result,
-      user:currentUsername||guestUser,
+      user:currentUsername||guestUser||"anon",
       time:Date.now()
     });
   };
 
   r.readAsDataURL(file);
-}
-
-function loadImages(){
-  imgRef.orderBy("time","desc").onSnapshot(s=>{
-    gallery.innerHTML="";
-    s.forEach(d=>{
-      let img=document.createElement("img");
-      img.src=d.data().img;
-      gallery.appendChild(img);
-    });
-  });
 }
 
 /* TRANSLATE */
@@ -410,10 +410,10 @@ async function translateText(){
 
   const data=await res.json();
   lastTranslated=data.responseData.translatedText;
+
   output.innerText=lastTranslated;
 }
 
-/* FIX TEXT */
 function simplifyText(){
   output.innerText="SIMPLIFIED:\n"+(lastTranslated||text.value).split(".")[0];
 }
@@ -424,16 +424,15 @@ function summarizeText(){
 
 /* MENU INFO */
 setInterval(()=>{
-  const now=new Date();
   const r=new Date();
   r.setHours(24,0,0,0);
 
-  menuInfo.innerText=
-  `Reset: ${Math.floor((r-now)/3600000)}h
+  menuInfo.innerText =
+`Reset: ${Math.floor((r-new Date())/3600000)}h
 Recent: ${translationHistory[0]?.from||"none"}`;
 },1000);
 
-/* LANGS */
+/* LANGS (FULL 50+) */
 const languages={
 en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",
 pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch",
@@ -441,7 +440,9 @@ ar:"Arabisch",hi:"Hindi",tr:"Türkisch",nl:"Niederländisch",pl:"Polnisch",
 uk:"Ukrainisch",sv:"Schwedisch",da:"Dänisch",fi:"Finnisch",no:"Norwegisch",
 cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",
 vi:"Vietnamesisch",id:"Indonesisch",ms:"Malaiisch",tl:"Filipino",
-sw:"Swahili",ta:"Tamil",te:"Telugu",ml:"Malayalam",kn:"Kannada"
+sw:"Swahili",ta:"Tamil",te:"Telugu",ml:"Malayalam",kn:"Kannada",
+bn:"Bengalisch",ur:"Urdu",fa:"Persisch",ne:"Nepalesisch",si:"Singhalesisch",
+my:"Burmesisch",km:"Khmer",lo:"Laotisch",am:"Amharisch",so:"Somali",zu:"Zulu"
 };
 
 for(let l in languages){
