@@ -79,14 +79,15 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
-    /* CHAT */
+    /* CHAT FIX */
     #chatBox{
       position:fixed;
       bottom:140px;
       right:10px;
       width:250px;
       max-height:250px;
-      overflow:auto;
+      overflow-y:auto;
+      overflow-x:hidden;
       background:#111827;
       padding:10px;
       border-radius:10px;
@@ -145,13 +146,14 @@
       padding:10px;
       border-radius:10px;
       display:none;
-      width:200px;
+      width:220px;
     }
 
     #menuInfo{
       font-size:12px;
-      opacity:0.8;
+      opacity:0.85;
       margin-bottom:10px;
+      white-space:pre-line;
     }
   </style>
 </head>
@@ -166,7 +168,7 @@
 
     <input id="email" placeholder="Email">
     <input id="password" type="password" placeholder="Passwort">
-    <input id="username" placeholder="Username (Chat Name)">
+    <input id="username" placeholder="Username">
 
     <button onclick="login()">Login</button>
     <button onclick="register()">Registrieren</button>
@@ -174,7 +176,7 @@
     <hr>
 
     <input id="guestName" placeholder="Gast Username">
-    <button onclick="guestLogin()">Als Gast fortfahren</button>
+    <button onclick="guestLogin()">Als Gast</button>
 
   </div>
 </div>
@@ -192,7 +194,6 @@
     <button onclick="showFacts()">Facts</button>
 
     <hr>
-
     <button onclick="logout()">Logout</button>
   </div>
 
@@ -247,22 +248,18 @@ let currentUsername="";
 let messageCount=0;
 let chatOpen=false;
 
-/* 🔥 LAST TRANSLATION SOURCE */
 let lastTranslatedText="";
+let recentTranslations=[];
 
 /* AUTH */
 function login(){
   auth.signInWithEmailAndPassword(email.value,password.value)
-    .then(()=>{
-      currentUsername=username.value;
-    });
+    .then(()=>currentUsername=username.value);
 }
 
 function register(){
   auth.createUserWithEmailAndPassword(email.value,password.value)
-    .then(()=>{
-      currentUsername=username.value;
-    });
+    .then(()=>currentUsername=username.value);
 }
 
 function logout(){
@@ -290,10 +287,6 @@ auth.onAuthStateChanged(user=>{
   if(user || isGuest){
     loginScreen.style.display="none";
     app.style.display="block";
-
-    document.getElementById("chatBox").style.display="none";
-    document.getElementById("chatInputBox").style.display="none";
-
     loadChat();
   }else{
     loginScreen.style.display="flex";
@@ -307,24 +300,28 @@ function toggleMenu(){
   m.style.display=m.style.display==="none"?"block":"none";
 }
 
-/* CHAT */
+/* CHAT TOGGLE */
 function toggleChat(){
   chatOpen=!chatOpen;
-
-  document.getElementById("chatBox").style.display=chatOpen?"block":"none";
-  document.getElementById("chatInputBox").style.display=chatOpen?"block":"none";
+  chatBox.style.display=chatOpen?"block":"none";
+  chatInputBox.style.display=chatOpen?"block":"none";
 }
 
-/* CHAT LOAD */
+/* CHAT FIX SCROLL */
 function loadChat(){
-  chatRef.orderBy("time").onSnapshot(snap=>{
+  chatRef.onSnapshot(snap=>{
     const box=document.getElementById("chatBox");
+    if(!box) return;
+
+    const isAtBottom =
+      box.scrollTop + box.clientHeight >= box.scrollHeight - 10;
+
     box.innerHTML="";
     messageCount=0;
 
     snap.forEach(d=>{
-      messageCount++;
       const data=d.data();
+      messageCount++;
 
       const div=document.createElement("div");
       div.innerText=data.user+": "+data.text;
@@ -332,10 +329,14 @@ function loadChat(){
     });
 
     updateMenuInfo();
+
+    if(isAtBottom){
+      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+    }
   });
 }
 
-/* MENU TIMER */
+/* MENU INFO */
 function updateMenuInfo(){
   const info=document.getElementById("menuInfo");
 
@@ -347,19 +348,25 @@ function updateMenuInfo(){
   const h=Math.floor(diff/1000/60/60);
   const m=Math.floor((diff/1000/60)%60);
 
-  info.innerHTML=
-    "⏱ Reset: "+h+"h "+m+"m<br>"+
-    "💬 Messages: "+messageCount;
+  let recent="";
+  if(recentTranslations.length>0){
+    const last=recentTranslations[0];
+    recent=`\n🔁 ${last.from}→${last.to}`;
+  }
+
+  info.innerText=
+`⏱ Reset: ${h}h ${m}m
+💬 Messages: ${messageCount}`+recent;
 }
 
 setInterval(updateMenuInfo,60000);
 
 /* SEND */
 function sendChat(){
-  const msg=document.getElementById("chatInput").value;
+  const msg=chatInput.value;
   if(!msg.trim()) return;
 
-  let user=isGuest?guestUser:(currentUsername || auth.currentUser.email);
+  const user=isGuest?guestUser:(currentUsername||auth.currentUser?.email);
 
   chatRef.add({
     text:msg,
@@ -367,7 +374,7 @@ function sendChat(){
     time:Date.now()
   });
 
-  document.getElementById("chatInput").value="";
+  chatInput.value="";
 }
 
 /* TRANSLATE */
@@ -383,53 +390,47 @@ async function translateText(){
   );
 
   const data=await res.json();
+
   lastTranslatedText=data.responseData.translatedText;
+
+  recentTranslations.unshift({from,to});
+  if(recentTranslations.length>5) recentTranslations.pop();
 
   document.getElementById("output").innerText=lastTranslatedText;
 }
 
-/* FIXED FUNCTIONS */
+/* FIX FUNCTIONS */
 function simplifyText(){
-  const base=lastTranslatedText || document.getElementById("text").value;
-  document.getElementById("output").innerText=
-    "VEREINFACHT:\n\n"+base.split(".")[0];
+  const base=lastTranslatedText||text.value;
+  output.innerText="VEREINFACHT:\n\n"+base.split(".")[0];
 }
 
 function summarizeText(){
-  const base=lastTranslatedText || document.getElementById("text").value;
-  document.getElementById("output").innerText=
-    "ZUSAMMENFASSUNG:\n\n"+base.split(" ").slice(0,25).join(" ")+"...";
+  const base=lastTranslatedText||text.value;
+  output.innerText="ZUSAMMENFASSUNG:\n\n"+base.split(" ").slice(0,25).join(" ")+"...";
 }
 
 /* MENU FEATURES */
 function openSettings(){
-  document.getElementById("output").innerText=
-    "⚙ SETTINGS:\nUsername / Sprache / Chat Optionen";
+  output.innerText="⚙ Settings Menü";
 }
 
 function openHelp(){
-  document.getElementById("output").innerText=
-    "🆘 HELP:\nChat = Firebase\nTranslate = API\nReload bei Fehler";
+  output.innerText="🆘 Hilfe & Support";
 }
 
 function showFacts(){
-  const facts=[
-    "Firebase Echtzeit Chat",
-    "MyMemory Translation API",
-    "Username statt Email im Chat",
-    "Multi Language System"
-  ];
-
-  document.getElementById("output").innerText=
-    "📊 FACT:\n\n"+facts[Math.floor(Math.random()*facts.length)];
+  const f=["Firebase Chat","Translation API","Realtime System"];
+  output.innerText="📊 "+f[Math.floor(Math.random()*f.length)];
 }
 
 /* LANGUAGES */
-const languages={en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch",ar:"Arabisch",hi:"Hindi",fa:"Persisch",ur:"Urdu",bn:"Bengalisch",tr:"Türkisch",vi:"Vietnamesisch",id:"Indonesisch",pl:"Polnisch",uk:"Ukrainisch",nl:"Niederländisch",el:"Griechisch",sv:"Schwedisch",da:"Dänisch",fi:"Finnisch",no:"Norwegisch",cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",ms:"Malaiisch",tl:"Filipino",sw:"Swahili",ta:"Tamil",te:"Telugu",ml:"Malayalam",kn:"Kannada",pa:"Punjabi",mr:"Marathi",ne:"Nepalesisch",si:"Singhalesisch",my:"Burmesisch",km:"Khmer",lo:"Laotisch",am:"Amharisch",az:"Aserbaidschanisch",so:"Somali",zu:"Zulu",yo:"Yoruba"};
+const languages={en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",pt:"Portugiesisch"};
 
 function loadLanguages(){
   const f=document.getElementById("fromLang");
   const t=document.getElementById("toLang");
+
   for(let c in languages){
     f.add(new Option(languages[c],c));
     t.add(new Option(languages[c],c));
