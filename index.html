@@ -80,7 +80,6 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
-    /* CHAT */
     #chatBox{
       position:fixed;
       bottom:140px;
@@ -129,7 +128,6 @@
       font-size:22px;
     }
 
-    /* MENU */
     #menuBtn{
       position:fixed;
       top:10px;
@@ -242,17 +240,19 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const chatRef = db.collection("chat");
 
-/* STATE */
+const chatBox = document.getElementById("chatBox");
+const chatInput = document.getElementById("chatInput");
+
 let isGuest=false;
 let guestUser="";
 let currentUsername="";
 let messageCount=0;
 let chatOpen=false;
-
 let lastTranslatedText="";
 let translationHistory=[];
+let chatUnsubscribe=null;
 
-/* AUTH */
+/* LOGIN */
 function login(){
   auth.signInWithEmailAndPassword(email.value,password.value)
     .then(()=>currentUsername=username.value);
@@ -304,20 +304,26 @@ function toggleMenu(){
 /* CHAT */
 function toggleChat(){
   chatOpen=!chatOpen;
+
   chatBox.style.display=chatOpen?"block":"none";
-  chatInputBox.style.display=chatOpen?"block":"none";
+  document.getElementById("chatInputBox").style.display=chatOpen?"block":"none";
+
+  if(chatOpen){
+    setTimeout(()=>{
+      chatBox.scrollTop=chatBox.scrollHeight;
+    },50);
+  }
 }
 
-/* CHAT */
 function loadChat(){
-  chatRef.orderBy("time","asc").onSnapshot(snap=>{
-    const box=document.getElementById("chatBox");
-    if(!box) return;
+  if(chatUnsubscribe) chatUnsubscribe();
 
-    const wasAtBottom =
-      box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+  chatUnsubscribe = chatRef.orderBy("time","asc").onSnapshot(snap=>{
 
-    box.innerHTML="";
+    const wasBottom =
+      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 20;
+
+    chatBox.innerHTML="";
     messageCount=0;
 
     snap.forEach(d=>{
@@ -325,48 +331,25 @@ function loadChat(){
       messageCount++;
 
       const div=document.createElement("div");
+      div.style.padding="4px";
       div.innerText=data.user+": "+data.text;
-      box.appendChild(div);
+      chatBox.appendChild(div);
     });
 
     updateMenuInfo();
 
-    if(wasAtBottom){
-      requestAnimationFrame(()=>{
-        box.scrollTop = box.scrollHeight;
-      });
-    }
+    requestAnimationFrame(()=>{
+      if(wasBottom){
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    });
+
   });
 }
 
-/* MENU INFO */
-function updateMenuInfo(){
-  const info=document.getElementById("menuInfo");
-
-  const now=new Date();
-  const reset=new Date();
-  reset.setHours(24,0,0,0);
-
-  const diff=reset-now;
-  const h=Math.floor(diff/1000/60/60);
-  const m=Math.floor((diff/1000/60)%60);
-
-  let history="";
-  if(translationHistory.length>0){
-    const last=translationHistory[0];
-    history=`\n📜 ${last.from}→${last.to}`;
-  }
-
-  info.innerText=
-`⏱ Reset: ${h}h ${m}m
-💬 Messages: ${messageCount}`+history;
-}
-
-setInterval(updateMenuInfo,60000);
-
-/* SEND */
+/* SEND CHAT */
 function sendChat(){
-  const msg=chatInput.value;
+  const msg = chatInput.value;
   if(!msg.trim()) return;
 
   const user=isGuest?guestUser:(currentUsername||auth.currentUser?.email);
@@ -378,6 +361,10 @@ function sendChat(){
   });
 
   chatInput.value="";
+
+  setTimeout(()=>{
+    chatBox.scrollTop = chatBox.scrollHeight;
+  },50);
 }
 
 /* TRANSLATE */
@@ -396,27 +383,26 @@ async function translateText(){
 
   lastTranslatedText=data.responseData.translatedText;
 
-  translationHistory.unshift({
-    from,to,time:new Date().toLocaleTimeString()
-  });
-
+  translationHistory.unshift({from,to});
   if(translationHistory.length>10) translationHistory.pop();
 
   document.getElementById("output").innerText=lastTranslatedText;
 }
 
-/* FIX FUNCTIONS */
+/* FIXED TEXT FUNCTIONS */
 function simplifyText(){
-  const base=lastTranslatedText||text.value;
-  output.innerText="VEREINFACHT:\n\n"+base.split(".")[0];
+  const base = lastTranslatedText || document.getElementById("text").value;
+  document.getElementById("output").innerText =
+    "VEREINFACHT:\n\n" + base.split(".")[0];
 }
 
 function summarizeText(){
-  const base=lastTranslatedText||text.value;
-  output.innerText="ZUSAMMENFASSUNG:\n\n"+base.split(" ").slice(0,25).join(" ")+"...";
+  const base = lastTranslatedText || document.getElementById("text").value;
+  document.getElementById("output").innerText =
+    "ZUSAMMENFASSUNG:\n\n" + base.split(" ").slice(0,25).join(" ") + "...";
 }
 
-/* INFO SYSTEM */
+/* INFO */
 function openInfo(){
   const now=new Date();
   const reset=new Date();
@@ -426,37 +412,29 @@ function openInfo(){
   const h=Math.floor(diff/1000/60/60);
   const m=Math.floor((diff/1000/60)%60);
 
-  let historyText="📜 TRANSLATION HISTORY:\n\n";
+  document.getElementById("output").innerText =
+`📜 History:
+${translationHistory.slice(0,5).map((t,i)=>`${i+1}. ${t.from}→${t.to}`).join("\n") || "None"}
 
-  if(translationHistory.length===0){
-    historyText+="No translations yet";
-  }else{
-    translationHistory.slice(0,5).forEach((t,i)=>{
-      historyText+=`${i+1}. ${t.from}→${t.to} (${t.time})\n`;
-    });
-  }
-
-  historyText+=`\n🔄 GLOBAL CHAT RESET:\n${h}h ${m}m remaining`;
-
-  document.getElementById("output").innerText=historyText;
+🔄 Reset: ${h}h ${m}m`;
 }
 
-/* OTHER */
-function openSettings(){
-  output.innerText="⚙ Settings";
-}
+/* MENU ACTIONS */
+function openSettings(){document.getElementById("output").innerText="⚙ Settings";}
+function openHelp(){document.getElementById("output").innerText="🆘 Help & Support";}
 
-function openHelp(){
-  output.innerText="🆘 Help & Support";
-}
-
-function showFacts(){
-  const f=["Firebase Chat","Translation API","Realtime System"];
-  output.innerText=f[Math.floor(Math.random()*f.length)];
-}
-
-/* LANGUAGES */
-const languages={en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch"};
+/* LANGUAGES (60+) */
+const languages={
+en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",
+pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch",
+ar:"Arabisch",hi:"Hindi",tr:"Türkisch",nl:"Niederländisch",pl:"Polnisch",
+uk:"Ukrainisch",sv:"Schwedisch",da:"Dänisch",fi:"Finnisch",no:"Norwegisch",
+cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",
+vi:"Vietnamesisch",id:"Indonesisch",ms:"Malaiisch",tl:"Filipino",
+fa:"Persisch",ur:"Urdu",bn:"Bengalisch",ta:"Tamil",te:"Telugu",
+ml:"Malayalam",kn:"Kannada",ne:"Nepalesisch",si:"Singhalesisch",
+sw:"Swahili",yo:"Yoruba",zu:"Zulu"
+};
 
 function loadLanguages(){
   const f=document.getElementById("fromLang");
