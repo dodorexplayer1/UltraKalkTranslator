@@ -156,15 +156,16 @@
       white-space:pre-line;
     }
 
-    /* SECRET BUTTON */
+    /* + BUTTON TOP CENTER */
     #secretPlus{
       position:fixed;
-      bottom:2px;
-      left:2px;
-      font-size:10px;
-      opacity:0.05;
-      transform:scale(0.4);
+      top:8px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:22px;
       cursor:pointer;
+      color:white;
+      opacity:0.7;
     }
 
     /* IMAGE PANEL */
@@ -186,6 +187,12 @@
       margin-top:5px;
       border-radius:6px;
     }
+
+    #gallery div{
+      font-size:10px;
+      opacity:0.8;
+      margin-bottom:8px;
+    }
   </style>
 </head>
 
@@ -194,6 +201,7 @@
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="box">
+
     <h3>Login</h3>
 
     <input id="email" placeholder="Email">
@@ -253,7 +261,7 @@
 
 <div id="chatToggle" onclick="toggleChat()">💬</div>
 
-<!-- SECRET -->
+<!-- SECRET + -->
 <div id="secretPlus" onclick="askImageCode()">+</div>
 
 <!-- IMAGES -->
@@ -279,6 +287,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+
 const chatRef = db.collection("chat");
 const imgRef = db.collection("images");
 
@@ -293,8 +302,8 @@ let lastTranslatedText="";
 let translationHistory=[];
 let chatUnsubscribe=null;
 
-/* OWNER */
-const OWNER_EMAIL = "YOUR_EMAIL_HERE@example.com";
+/* CODE */
+const IMAGE_CODE="IloveCodeGeass";
 
 /* LOGIN */
 function login(){
@@ -337,42 +346,15 @@ function toggleMenu(){
   m.style.display=m.style.display==="none"?"block":"none";
 }
 
-/* CHAT CODE */
-function askChatCode(){
-  const c=prompt("Chat Code?");
-  if(c==="$01$"){
-    chatUnlocked=true;
-    loadChat();
-  }else alert("Wrong code");
-}
-
 /* CHAT */
 function toggleChat(){
-  if(!chatUnlocked) return askChatCode();
-
   chatOpen=!chatOpen;
   chatBox.style.display=chatOpen?"block":"none";
   chatInputBox.style.display=chatOpen?"block":"none";
 }
 
-function loadChat(){
-  if(chatUnsubscribe) chatUnsubscribe();
-
-  chatUnsubscribe = chatRef.orderBy("time").onSnapshot(snap=>{
-    chatBox.innerHTML="";
-
-    snap.forEach(d=>{
-      const div=document.createElement("div");
-      div.innerText=d.data().user+": "+d.data().text;
-      chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
-}
-
 function sendChat(){
-  const msg=chatInput.value;
+  const msg=document.getElementById("chatInput").value;
   if(!msg.trim()) return;
 
   const user=isGuest?guestUser:(currentUsername||auth.currentUser?.email);
@@ -383,13 +365,13 @@ function sendChat(){
     time:Date.now()
   });
 
-  chatInput.value="";
+  document.getElementById("chatInput").value="";
 }
 
 /* IMAGE CODE */
 function askImageCode(){
   const c=prompt("what's the code?");
-  if(c==="$00$"){
+  if(c===IMAGE_CODE){
     imageUnlocked=true;
     document.getElementById("imagePanel").style.display="block";
     loadImages();
@@ -400,16 +382,15 @@ function askImageCode(){
 function uploadImage(){
   if(!imageUnlocked) return;
 
-  if(auth.currentUser?.email !== OWNER_EMAIL){
-    alert("Only owner can upload");
-    return;
-  }
-
   const file=document.getElementById("imgUpload").files[0];
   const reader=new FileReader();
 
   reader.onload=()=>{
-    imgRef.add({img:reader.result,time:Date.now()});
+    imgRef.add({
+      img:reader.result,
+      user:currentUsername||guestUser||"anon",
+      time:Date.now()
+    });
   };
 
   reader.readAsDataURL(file);
@@ -421,9 +402,17 @@ function loadImages(){
     g.innerHTML="";
 
     snap.forEach(d=>{
-      const i=document.createElement("img");
-      i.src=d.data().img;
-      g.appendChild(i);
+      const wrap=document.createElement("div");
+
+      const img=document.createElement("img");
+      img.src=d.data().img;
+
+      const label=document.createElement("div");
+      label.innerText="by: "+(d.data().user||"unknown");
+
+      wrap.appendChild(img);
+      wrap.appendChild(label);
+      g.appendChild(wrap);
     });
   });
 }
@@ -455,12 +444,12 @@ function summarizeText(){
   document.getElementById("output").innerText="ZUSAMMENFASSUNG:\n\n"+b.split(" ").slice(0,25).join(" ")+"...";
 }
 
-/* MENU ACTIONS */
-function openSettings(){output.innerText="Settings";}
-function openHelp(){output.innerText="Help";}
-function openInfo(){output.innerText="Info";}
+/* MENU */
+function openSettings(){document.getElementById("output").innerText="Settings";}
+function openHelp(){document.getElementById("output").innerText="Help";}
+function openInfo(){document.getElementById("output").innerText="Info";}
 
-/* LANGUAGES (SHORT) */
+/* LANGUAGES */
 const languages={
 en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",
 pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch"
