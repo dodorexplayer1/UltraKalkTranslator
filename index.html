@@ -145,12 +145,23 @@
       margin-top:10px;
       border-radius:8px;
     }
+
+    #pages{
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    #pages button{
+      padding:5px;
+      width:auto;
+    }
   </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="box">
     <h3>Login</h3>
@@ -199,11 +210,17 @@
 
 </div>
 
-<!-- IMAGE -->
+<!-- IMAGE PANEL -->
 <div id="imagePanel">
+
+  <button onclick="closeUpload()">✖ Close</button>
+
   <input type="file" id="imgUpload">
   <button onclick="uploadImage()">Upload</button>
+
+  <div id="pages"></div>
   <div id="gallery"></div>
+
 </div>
 
 <script>
@@ -227,6 +244,9 @@ let guestUser="";
 let currentUsername="";
 let uploadUnlocked=false;
 
+let pageSize=4;
+let currentPage=1;
+
 /* LOGIN */
 function login(){
   auth.signInWithEmailAndPassword(email.value,password.value)
@@ -242,6 +262,12 @@ function register(){
   });
 }
 
+function guestLogin(){
+  isGuest=true;
+  guestUser=guestName.value;
+}
+
+/* AUTH */
 auth.onAuthStateChanged(u=>{
   if(u || isGuest){
     loginScreen.style.display="none";
@@ -254,23 +280,7 @@ auth.onAuthStateChanged(u=>{
   }
 });
 
-function guestLogin(){
-  isGuest=true;
-  guestUser=guestName.value;
-}
-
-/* CHAT TOGGLE */
-function toggleChat(){
-  const open = chatBox.style.display==="block";
-  chatBox.style.display=open?"none":"block";
-  chatInputBox.style.display=open?"none":"block";
-
-  requestAnimationFrame(()=>{
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-
-/* CHAT FIX (STABLE AUTO SCROLL) */
+/* CHAT */
 function loadChat(){
 
   chatRef.orderBy("time","asc").onSnapshot(snap=>{
@@ -300,7 +310,6 @@ function loadChat(){
   });
 }
 
-/* SEND */
 function sendChat(){
   if(!chatInput.value.trim()) return;
 
@@ -313,18 +322,31 @@ function sendChat(){
   chatInput.value="";
 }
 
-/* UPLOAD CODE LOCK */
+function toggleChat(){
+  const open = chatBox.style.display==="block";
+  chatBox.style.display=open?"none":"block";
+  chatInputBox.style.display=open?"none":"block";
+
+  requestAnimationFrame(()=>{
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+
+/* UPLOAD */
 function openUpload(){
   if(!uploadUnlocked){
     const code=prompt("Upload Code?");
     if(code!=="$00$") return;
     uploadUnlocked=true;
   }
-
   imagePanel.style.display="block";
 }
 
-/* IMAGE UPLOAD */
+function closeUpload(){
+  imagePanel.style.display="none";
+}
+
+/* IMAGE */
 function uploadImage(){
   const file=imgUpload.files[0];
   if(!file) return;
@@ -340,15 +362,60 @@ function uploadImage(){
   reader.readAsDataURL(file);
 }
 
+/* PAGINATION + DELETE */
 function loadImages(){
+
   imgRef.orderBy("time","desc").onSnapshot(s=>{
-    gallery.innerHTML="";
+
+    const all=[];
     s.forEach(d=>{
-      const img=document.createElement("img");
-      img.src=d.data().img;
-      gallery.appendChild(img);
+      all.push({id:d.id, ...d.data()});
     });
+
+    const start=(currentPage-1)*pageSize;
+    const page=all.slice(start,start+pageSize);
+
+    gallery.innerHTML="";
+
+    page.forEach(x=>{
+
+      const wrap=document.createElement("div");
+
+      const img=document.createElement("img");
+      img.src=x.img;
+
+      const del=document.createElement("button");
+      del.innerText="Delete";
+
+      del.onclick=()=>imgRef.doc(x.id).delete();
+
+      wrap.appendChild(img);
+      wrap.appendChild(del);
+
+      gallery.appendChild(wrap);
+    });
+
+    renderPages(all.length);
+
   });
+}
+
+function renderPages(total){
+  const pages=Math.ceil(total/pageSize);
+  pages.innerHTML="";
+
+  const box=document.getElementById("pages");
+  box.innerHTML="";
+
+  for(let i=1;i<=pages;i++){
+    const b=document.createElement("button");
+    b.innerText=i;
+    b.onclick=()=>{
+      currentPage=i;
+      loadImages();
+    };
+    box.appendChild(b);
+  }
 }
 
 /* TRANSLATE */
