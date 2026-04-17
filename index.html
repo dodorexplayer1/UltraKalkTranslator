@@ -16,7 +16,6 @@
       color:white;
     }
 
-    /* LOGIN */
     #loginScreen{
       position:fixed;
       inset:0;
@@ -50,7 +49,6 @@
 
     hr{opacity:0.3;}
 
-    /* APP */
     #app{display:none;padding:20px;}
 
     textarea,select{
@@ -83,7 +81,7 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
-    /* CHAT BOX */
+    /* CHAT */
     #chatBox{
       position:fixed;
       bottom:140px;
@@ -132,7 +130,6 @@
       font-size:22px;
     }
 
-    /* MENU */
     #menuBtn{
       position:fixed;
       top:10px;
@@ -151,16 +148,15 @@
       display:none;
     }
 
-    /* CHAT INFO */
     #chatInfo{
       position:fixed;
-      top:10px;
-      left:10px;
+      top:60px;
+      right:10px;
       font-size:12px;
-      opacity:0.8;
       background:#111827;
       padding:8px;
       border-radius:8px;
+      opacity:0.9;
     }
   </style>
 </head>
@@ -171,17 +167,18 @@
 <div id="loginScreen">
   <div class="box">
 
-    <h3>Willkommen</h3>
+    <h3>Login</h3>
 
     <input id="email" placeholder="Email">
     <input id="password" type="password" placeholder="Passwort">
+    <input id="username" placeholder="Username (für Chat)">
 
     <button onclick="login()">Login</button>
     <button onclick="register()">Registrieren</button>
 
     <hr>
 
-    <input id="guestName" placeholder="Username für Gast">
+    <input id="guestName" placeholder="Gast Username">
     <button onclick="guestLogin()">Als Gast fortfahren</button>
 
   </div>
@@ -245,23 +242,38 @@ const chatRef = db.collection("chat");
 
 let isGuest=false;
 let guestUser="";
+let currentUsername="";
 let messageCount=0;
 let chatOpen=false;
+
+/* 🔥 CHAT RESET (ENTFERNT ALTE EMAILS) */
+chatRef.get().then(snap=>{
+  snap.forEach(doc=>{
+    chatRef.doc(doc.id).delete();
+  });
+});
 
 /* AUTH */
 function login(){
   auth.signInWithEmailAndPassword(email.value,password.value)
+    .then(()=>{
+      currentUsername=username.value;
+    })
     .catch(e=>alert(e.message));
 }
 
 function register(){
   auth.createUserWithEmailAndPassword(email.value,password.value)
+    .then(()=>{
+      currentUsername=username.value;
+    })
     .catch(e=>alert(e.message));
 }
 
 function logout(){
   isGuest=false;
   guestUser="";
+  currentUsername="";
   auth.signOut();
 }
 
@@ -303,7 +315,7 @@ function toggleMenu(){
   m.style.display=m.style.display==="none"?"block":"none";
 }
 
-/* CHAT TOGGLE FIX */
+/* CHAT TOGGLE */
 function toggleChat(){
   chatOpen=!chatOpen;
 
@@ -339,19 +351,24 @@ function loadChat(){
   });
 }
 
-/* CHAT INFO */
+/* CHAT INFO (oben rechts im Chat) */
 function updateChatInfo(){
   const info=document.getElementById("chatInfo");
 
+  const now=new Date();
   const reset=new Date();
   reset.setHours(24,0,0,0);
 
+  const diff=reset-now;
+  const h=Math.floor(diff/1000/60/60);
+  const m=Math.floor((diff/1000/60)%60);
+
   info.innerHTML=
-    "👥 Nachrichten: "+messageCount+
-    "<br>⏱ Reset: "+reset.toLocaleTimeString();
+    "💬 Nachrichten: "+messageCount+
+    "<br>⏱ Reset in: "+h+"h "+m+"m";
 }
 
-/* CHAT SEND FIX */
+/* CHAT SEND */
 function sendChat(){
   const msg=document.getElementById("chatInput").value;
   if(!msg.trim()) return;
@@ -361,7 +378,7 @@ function sendChat(){
   if(isGuest){
     user=guestUser;
   }else if(auth.currentUser){
-    user=auth.currentUser.email;
+    user=currentUsername || auth.currentUser.email;
   }
 
   chatRef.add({
@@ -394,26 +411,13 @@ function simplifyText(){
   output.innerText="VEREINFACHT:\n\n"+text.value.split(".")[0];
 }
 
+/* SUMMARY */
 function summarizeText(){
   output.innerText="ZUSAMMENFASSUNG:\n\n"+text.value.slice(0,120)+"...";
 }
 
 /* LANGUAGES */
-const languages={
-  en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",
-  it:"Italienisch",pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",
-  ja:"Japanisch",ko:"Koreanisch",ar:"Arabisch",hi:"Hindi",
-  fa:"Persisch",ur:"Urdu",bn:"Bengalisch",tr:"Türkisch",
-  vi:"Vietnamesisch",id:"Indonesisch",pl:"Polnisch",uk:"Ukrainisch",
-  nl:"Niederländisch",el:"Griechisch",sv:"Schwedisch",da:"Dänisch",
-  fi:"Finnisch",no:"Norwegisch",cs:"Tschechisch",ro:"Rumänisch",
-  hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",ms:"Malaiisch",
-  tl:"Filipino",sw:"Swahili",ta:"Tamil",te:"Telugu",
-  ml:"Malayalam",kn:"Kannada",pa:"Punjabi",mr:"Marathi",
-  ne:"Nepalesisch",si:"Singhalesisch",my:"Burmesisch",km:"Khmer",
-  lo:"Laotisch",am:"Amharisch",az:"Aserbaidschanisch",so:"Somali",
-  zu:"Zulu",yo:"Yoruba"
-};
+const languages={ en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",it:"Italienisch",pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",ja:"Japanisch",ko:"Koreanisch",ar:"Arabisch",hi:"Hindi",fa:"Persisch",ur:"Urdu",bn:"Bengalisch",tr:"Türkisch",vi:"Vietnamesisch",id:"Indonesisch",pl:"Polnisch",uk:"Ukrainisch",nl:"Niederländisch",el:"Griechisch",sv:"Schwedisch",da:"Dänisch",fi:"Finnisch",no:"Norwegisch",cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",ms:"Malaiisch",tl:"Filipino",sw:"Swahili",ta:"Tamil",te:"Telugu",ml:"Malayalam",kn:"Kannada",pa:"Punjabi",mr:"Marathi",ne:"Nepalesisch",si:"Singhalesisch",my:"Burmesisch",km:"Khmer",lo:"Laotisch",am:"Amharisch",az:"Aserbaidschanisch",so:"Somali",zu:"Zulu",yo:"Yoruba"};
 
 function loadLanguages(){
   const f=document.getElementById("fromLang");
