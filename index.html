@@ -10,7 +10,7 @@
     body{
       margin:0;
       font-family:Arial;
-      background:#0f172a;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
       color:white;
       display:flex;
       justify-content:center;
@@ -19,20 +19,40 @@
     }
 
     .card{
-      background:#1e293b;
-      padding:20px;
-      border-radius:15px;
-      width:90%;
-      max-width:520px;
+      background:#111827;
+      padding:22px;
+      border-radius:18px;
+      width:92%;
+      max-width:540px;
       position:relative;
+      box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    h2{
+      margin-top:5px;
+      text-align:center;
+      font-size:20px;
     }
 
     textarea,select,button{
       width:100%;
       margin-top:10px;
-      padding:10px;
-      border-radius:8px;
+      padding:12px;
+      border-radius:10px;
       border:none;
+      font-size:14px;
+    }
+
+    textarea{
+      min-height:90px;
+      resize:none;
+      background:#0f172a;
+      color:white;
+    }
+
+    select{
+      background:#0f172a;
+      color:white;
     }
 
     button{
@@ -40,6 +60,12 @@
       color:white;
       font-weight:bold;
       cursor:pointer;
+      transition:0.2s;
+    }
+
+    button:hover{
+      background:#2563eb;
+      transform:scale(1.02);
     }
 
     .row{display:flex;gap:10px;}
@@ -47,27 +73,31 @@
 
     #output{
       margin-top:15px;
-      padding:10px;
+      padding:12px;
       background:#0f172a;
-      border-radius:8px;
-      min-height:60px;
+      border-radius:10px;
+      min-height:70px;
       white-space:pre-wrap;
+      border:1px solid #1f2937;
     }
 
     .menu-icon{
       position:absolute;
-      top:10px;
-      right:12px;
+      top:12px;
+      right:14px;
       cursor:pointer;
+      font-size:18px;
     }
 
     .menu{
       position:absolute;
-      top:40px;
+      top:45px;
       right:10px;
-      background:#111827;
-      border-radius:10px;
+      background:#0f172a;
+      border-radius:12px;
       width:180px;
+      overflow:hidden;
+      border:1px solid #1f2937;
     }
 
     .menu div{
@@ -76,26 +106,41 @@
       border-bottom:1px solid #1f2937;
     }
 
+    .menu div:hover{
+      background:#1e293b;
+    }
+
     .hidden{display:none;}
 
     #chatBox{
       position:fixed;
       bottom:10px;
       right:10px;
-      width:240px;
-      background:#111827;
+      width:260px;
+      background:#0f172a;
       padding:10px;
-      border-radius:10px;
+      border-radius:12px;
       font-size:12px;
+      border:1px solid #1f2937;
     }
 
     #chatMessages{
       height:140px;
       overflow-y:auto;
+      background:#111827;
+      padding:6px;
+      border-radius:8px;
+      margin-bottom:6px;
+    }
+
+    #chatInput{
+      width:100%;
+      padding:8px;
+      border-radius:8px;
+      border:none;
+      margin-top:5px;
       background:#0f172a;
-      padding:5px;
-      border-radius:5px;
-      margin-bottom:5px;
+      color:white;
     }
   </style>
 </head>
@@ -199,7 +244,7 @@ async function translateText(){
   document.getElementById("output").innerText = lastResult;
 }
 
-/* 🔥 VEREINFACHEN (STARK UPGRADE) */
+/* VEREINFACHEN */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -208,49 +253,30 @@ function simplifyText(){
     return;
   }
 
-  let sentences = text
-    .split(/[.!?]/)
-    .map(s => s.trim())
-    .filter(Boolean);
-
+  let sentences = text.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);
   let keep = Math.max(1, Math.ceil(sentences.length * 0.5));
 
-  let selected = sentences.slice(0, keep);
-
-  let result = selected.map(s => {
+  let result = sentences.slice(0,keep).map(s=>{
     let simple = s
       .replace(/\b(jedoch|allerdings|dennoch|trotzdem)\b/gi,"aber")
       .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
       .replace(/\b(Informationen?|Details|Aspekte|Daten)\b/gi,"Infos")
       .replace(/\b(komplex|kompliziert|schwierig)\b/gi,"einfach");
 
-    if(simple.length > 80){
-      simple = simple.slice(0, 70) + "...";
-    }
-
-    return simple;
+    return simple.length > 80 ? simple.slice(0,70)+"..." : simple;
   }).join(". ");
 
   document.getElementById("output").innerText =
     "VEREINFACHT:\n\n" + result + ".";
 }
 
-/* 🔥 ZUSAMMENFASSEN (BLEIBT GUT) */
+/* ZUSAMMENFASSEN */
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value || "";
 
-  if(!text.trim()){
-    document.getElementById("output").innerText = "Kein Text zum Zusammenfassen";
-    return;
-  }
-
-  let sentences = text
-    .split(/[.!?]/)
-    .map(s => s.trim())
-    .filter(s => s.length > 20);
-
-  if(sentences.length === 0){
-    document.getElementById("output").innerText = text;
+  let sentences = text.split(/[.!?]/).map(s=>s.trim()).filter(s=>s.length>20);
+  if(sentences.length===0){
+    document.getElementById("output").innerText=text;
     return;
   }
 
@@ -258,23 +284,20 @@ function summarizeText(){
   let longest = sentences.sort((a,b)=>b.length-a.length)[0];
 
   let summary = first;
-  if(longest !== first){
-    summary += ". " + longest;
-  }
+  if(longest!==first) summary += ". "+longest;
 
   document.getElementById("output").innerText =
-    "ZUSAMMENFASSUNG:\n\n" + summary + ".";
+    "ZUSAMMENFASSUNG:\n\n"+summary+".";
 }
 
 /* MENU */
 function toggleMenu(){
   document.getElementById("menu").classList.toggle("hidden");
 }
-
-function openSettings(){ document.getElementById("output").innerText="Settings"; }
-function openLogin(){ document.getElementById("output").innerText="Login"; }
-function openSupport(){ document.getElementById("output").innerText="Support"; }
-function openRules(){ document.getElementById("output").innerText="Regeln"; }
+function openSettings(){output.innerText="Settings";}
+function openLogin(){output.innerText="Login";}
+function openSupport(){output.innerText="Support";}
+function openRules(){output.innerText="Regeln";}
 
 /* CHAT */
 function sendChat(){
@@ -286,17 +309,14 @@ function sendChat(){
 }
 
 function loadChat(){
-  chatRef.orderBy("time").onSnapshot(snapshot=>{
+  chatRef.orderBy("time").onSnapshot(snap=>{
     let box=document.getElementById("chatMessages");
     box.innerHTML="";
-
-    snapshot.forEach(doc=>{
+    snap.forEach(d=>{
       let div=document.createElement("div");
-      div.innerText="💡 "+doc.data().text;
+      div.innerText="💡 "+d.data().text;
       box.appendChild(div);
     });
-
-    box.scrollTop = box.scrollHeight;
   });
 }
 
