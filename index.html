@@ -80,7 +80,7 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
-    /* CHAT FIXED */
+    /* CHAT FIX */
     #chatBox{
       position:fixed;
       bottom:140px;
@@ -88,7 +88,6 @@
       width:260px;
       height:260px;
       overflow-y:auto;
-      overflow-x:hidden;
       background:#111827;
       padding:10px;
       border-radius:10px;
@@ -145,10 +144,17 @@
       font-size:12px;
       opacity:0.85;
       white-space:pre-line;
-      margin-bottom:10px;
     }
 
-    /* IMAGE FIXED */
+    /* IMAGE */
+    #uploadTop{
+      position:fixed;
+      top:10px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:999;
+    }
+
     #imagePanel{
       display:none;
       position:fixed;
@@ -169,23 +175,13 @@
       margin-top:10px;
       border-radius:8px;
     }
-
-    #uploadTop{
-      position:fixed;
-      top:10px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:999;
-    }
   </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="box">
-
     <h3>Login</h3>
 
     <input id="email" placeholder="Email">
@@ -199,24 +195,20 @@
 
     <input id="guestName" placeholder="Gast Username">
     <button onclick="guestLogin()">Als Gast</button>
-
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
 
   <div id="menuBtn" onclick="toggleMenu()">|||</div>
 
   <div id="menu">
     <div id="menuInfo"></div>
-    <button onclick="openSettings()">Settings</button>
-    <button onclick="openHelp()">Help</button>
-    <button onclick="logout()">Logout</button>
   </div>
 
+  <!-- IMAGE BUTTON FIXED TOP CENTER -->
   <div id="uploadTop">
-    <button onclick="askImageCode()">+ Upload Image</button>
+    <button onclick="openImage()">+ Upload Image</button>
   </div>
 
   <h2>Ultra Translator 50 Global</h2>
@@ -234,7 +226,6 @@
   </div>
 
   <div id="output"></div>
-
 </div>
 
 <!-- CHAT -->
@@ -247,7 +238,7 @@
 
 <div id="chatToggle" onclick="toggleChat()">💬</div>
 
-<!-- IMAGE -->
+<!-- IMAGE PANEL -->
 <div id="imagePanel">
   <input type="file" id="imgUpload">
   <button onclick="uploadImage()">Upload</button>
@@ -263,65 +254,48 @@ firebase.initializeApp({
   projectId:"projekt-erstellen-dfc13"
 });
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth=firebase.auth();
+const db=firebase.firestore();
 
-const chatRef = db.collection("chat");
-const imgRef = db.collection("images");
+const chatRef=db.collection("chat");
+const imgRef=db.collection("images");
 
 /* STATE */
 let isGuest=false;
 let guestUser="";
 let currentUsername="";
-let chatOpen=false;
-let chatUnlocked=false;
-let imageUnlocked=false;
+let lastTranslated="";
 
-const CHAT_CODE="$01$";
-const IMAGE_CODE="IloveCodeGeass";
-
-/* ENTER APP */
-function enterApp(){
-  loginScreen.style.display="none";
-  app.style.display="block";
-  loadChat();
-  loadImages();
-}
-
-/* AUTH */
+/* LOGIN FIX */
 function login(){
   auth.signInWithEmailAndPassword(email.value,password.value)
-    .then(u=>{
-      currentUsername=username.value||u.user.email;
-      enterApp();
-    });
+  .then(u=>{
+    currentUsername=username.value || u.user.email;
+  });
 }
 
 function register(){
   auth.createUserWithEmailAndPassword(email.value,password.value)
-    .then(u=>{
-      currentUsername=username.value||u.user.email;
-      enterApp();
-    });
+  .then(u=>{
+    currentUsername=username.value || u.user.email;
+  });
 }
 
 auth.onAuthStateChanged(u=>{
-  if(u || isGuest) enterApp();
-  else {
+  if(u || isGuest){
+    loginScreen.style.display="none";
+    app.style.display="block";
+    loadChat();
+    loadImages();
+  }else{
     loginScreen.style.display="flex";
     app.style.display="none";
   }
 });
 
-function logout(){
-  auth.signOut();
-}
-
-/* GUEST */
 function guestLogin(){
   isGuest=true;
   guestUser=guestName.value;
-  enterApp();
 }
 
 /* MENU */
@@ -329,43 +303,41 @@ function toggleMenu(){
   menu.style.display = menu.style.display==="block"?"none":"block";
 }
 
-/* CHAT FIX (REAL STABLE SCROLL) */
+/* CHAT FIX SCROLL + USERNAME */
 function loadChat(){
   chatRef.orderBy("time","asc").onSnapshot(s=>{
 
-    const shouldStick =
-      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 50;
+    const stick =
+      chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 30;
 
     chatBox.innerHTML="";
 
     s.forEach(d=>{
+      const data=d.data();
+
       const div=document.createElement("div");
-      div.innerText=d.data().user+": "+d.data().text;
+      div.innerText = (data.user || "anon") + ": " + data.text;
+
       chatBox.appendChild(div);
     });
 
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
-        if(shouldStick){
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        if(stick) chatBox.scrollTop = chatBox.scrollHeight;
       });
     });
 
   });
 }
 
+/* CHAT */
 function toggleChat(){
-  if(!chatUnlocked){
-    const c=prompt("Chat Code?");
-    if(c===CHAT_CODE) chatUnlocked=true;
-    else return;
-  }
+  chatBox.style.display = chatBox.style.display==="block"?"none":"block";
+  chatInputBox.style.display = chatInputBox.style.display==="block"?"none":"block";
 
-  chatOpen=!chatOpen;
-
-  chatBox.style.display=chatOpen?"block":"none";
-  chatInputBox.style.display=chatOpen?"block":"none";
+  requestAnimationFrame(()=>{
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 }
 
 function sendChat(){
@@ -373,7 +345,7 @@ function sendChat(){
 
   chatRef.add({
     text:chatInput.value,
-    user:isGuest?guestUser:currentUsername,
+    user:isGuest?guestUser:(currentUsername||"user"),
     time:Date.now()
   });
 
@@ -381,17 +353,11 @@ function sendChat(){
 }
 
 /* IMAGE FIX */
-function askImageCode(){
-  const c=prompt("What's the code?");
-  if(c===IMAGE_CODE){
-    imageUnlocked=true;
-    imagePanel.style.display="block";
-  }
+function openImage(){
+  imagePanel.style.display="block";
 }
 
 function uploadImage(){
-  if(!imageUnlocked) return;
-
   const file=imgUpload.files[0];
   if(!file) return;
 
@@ -411,15 +377,14 @@ function uploadImage(){
 function loadImages(){
   imgRef.orderBy("time","desc").onSnapshot(s=>{
     gallery.innerHTML="";
-
     s.forEach(d=>{
-      const data=d.data();
+      const x=d.data();
 
       const u=document.createElement("div");
-      u.innerText=data.user;
+      u.innerText=x.user;
 
       const img=document.createElement("img");
-      img.src=data.img;
+      img.src=x.img;
 
       gallery.appendChild(u);
       gallery.appendChild(img);
@@ -427,28 +392,28 @@ function loadImages(){
   });
 }
 
-/* TRANSLATE */
+/* TRANSLATE FIX */
 async function translateText(){
   const r=await fetch(
-    `https://api.mymemory.translated.net/get?q=${text.value}&langpair=${fromLang.value}|${toLang.value}`
+    "https://api.mymemory.translated.net/get?q="+text.value+
+    "&langpair="+fromLang.value+"|"+toLang.value
   );
 
   const d=await r.json();
-  output.innerText=d.responseData.translatedText;
+  lastTranslated=d.responseData.translatedText;
+  output.innerText=lastTranslated;
 }
 
+/* FIXED BASE TEXT */
 function simplifyText(){
-  output.innerText=text.value.split(".")[0];
+  const base = lastTranslated || text.value;
+  output.innerText = base.split(".")[0];
 }
 
 function summarizeText(){
-  output.innerText=text.value.split(" ").slice(0,20).join(" ")+"...";
+  const base = lastTranslated || text.value;
+  output.innerText = base.split(" ").slice(0,25).join(" ")+"...";
 }
-
-/* MENU INFO */
-setInterval(()=>{
-  menuInfo.innerText="System Active\nChat + Image Online";
-},1000);
 
 /* LANGS */
 const languages={
