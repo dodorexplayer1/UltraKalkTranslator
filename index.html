@@ -199,7 +199,7 @@ async function translateText(){
   document.getElementById("output").innerText = lastResult;
 }
 
-/* 🔥 VEREINFACHEN (JETZT FUNKTIONIERT) */
+/* 🔥 VEREINFACHEN (STARK UPGRADE) */
 function simplifyText(){
   let text = lastResult || document.getElementById("text").value || "";
 
@@ -208,21 +208,34 @@ function simplifyText(){
     return;
   }
 
-  let result = text
-    .replace(/\b(jedoch|allerdings|dennoch)\b/gi,"aber")
-    .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
-    .replace(/\b(Informationen?|Details|Aspekte|Daten)\b/gi,"Infos")
-    .replace(/\b(komplex|kompliziert)\b/gi,"einfach")
-    .split(".")
+  let sentences = text
+    .split(/[.!?]/)
     .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .map(s => s.length > 120 ? s.slice(0,100)+"..." : s)
-    .join(". ");
+    .filter(Boolean);
 
-  document.getElementById("output").innerText = "VEREINFACHT:\n\n" + result;
+  let keep = Math.max(1, Math.ceil(sentences.length * 0.5));
+
+  let selected = sentences.slice(0, keep);
+
+  let result = selected.map(s => {
+    let simple = s
+      .replace(/\b(jedoch|allerdings|dennoch|trotzdem)\b/gi,"aber")
+      .replace(/\b(durchgeführt|implementiert|realisiert|ausgeführt)\b/gi,"gemacht")
+      .replace(/\b(Informationen?|Details|Aspekte|Daten)\b/gi,"Infos")
+      .replace(/\b(komplex|kompliziert|schwierig)\b/gi,"einfach");
+
+    if(simple.length > 80){
+      simple = simple.slice(0, 70) + "...";
+    }
+
+    return simple;
+  }).join(". ");
+
+  document.getElementById("output").innerText =
+    "VEREINFACHT:\n\n" + result + ".";
 }
 
-/* 🔥 ZUSAMMENFASSEN (JETZT ECHT KÜRZER) */
+/* 🔥 ZUSAMMENFASSEN (BLEIBT GUT) */
 function summarizeText(){
   let text = lastResult || document.getElementById("text").value || "";
 
