@@ -47,8 +47,6 @@
       cursor:pointer;
     }
 
-    hr{opacity:0.3;margin:10px 0;}
-
     #app{display:none;padding:20px;}
 
     textarea,select{
@@ -81,27 +79,17 @@
     .row{display:flex;gap:10px;}
     .row button{flex:1;}
 
+    /* CHAT */
     #chatBox{
       position:fixed;
-      bottom:70px;
+      bottom:120px;
       right:10px;
       width:250px;
-      max-height:300px;
+      max-height:250px;
       overflow:auto;
       background:#111827;
       padding:10px;
       border-radius:10px;
-      display:none;
-    }
-
-    #chatInput{
-      width:100%;
-      padding:8px;
-      margin-top:5px;
-      border-radius:8px;
-      border:none;
-      background:#0f172a;
-      color:white;
     }
 
     #chatToggle{
@@ -117,6 +105,26 @@
       align-items:center;
       cursor:pointer;
       font-size:22px;
+    }
+
+    /* CHAT INPUT BOX */
+    #chatInputBox{
+      position:fixed;
+      bottom:70px;
+      right:10px;
+      width:250px;
+      background:#111827;
+      padding:10px;
+      border-radius:10px;
+    }
+
+    #chatInput{
+      width:100%;
+      padding:8px;
+      border-radius:8px;
+      border:none;
+      background:#0f172a;
+      color:white;
     }
 
     #menuBtn{
@@ -136,6 +144,17 @@
       border-radius:10px;
       display:none;
     }
+
+    #chatInfo{
+      position:fixed;
+      top:10px;
+      left:10px;
+      font-size:12px;
+      opacity:0.8;
+      background:#111827;
+      padding:8px;
+      border-radius:8px;
+    }
   </style>
 </head>
 
@@ -147,13 +166,13 @@
 
     <h3>Willkommen</h3>
 
-    <input id="email" placeholder="Email (optional)">
-    <input id="password" type="password" placeholder="Passwort (optional)">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Passwort">
 
     <button onclick="login()">Login</button>
     <button onclick="register()">Registrieren</button>
 
-    <hr>
+    <hr style="opacity:0.3;">
 
     <input id="guestName" placeholder="Username für Gast">
     <button onclick="guestLogin()">Als Gast fortfahren</button>
@@ -169,6 +188,8 @@
   <div id="menu">
     <button onclick="logout()">Logout</button>
   </div>
+
+  <div id="chatInfo"></div>
 
   <h2>Ultra Translator 50 Global</h2>
 
@@ -190,6 +211,11 @@
 <!-- CHAT -->
 <div id="chatBox"></div>
 
+<div id="chatInputBox">
+  <input id="chatInput" placeholder="Nachricht...">
+  <button onclick="sendChat()">Senden</button>
+</div>
+
 <div id="chatToggle" onclick="toggleChat()">💬</div>
 
 <script>
@@ -210,9 +236,9 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const chatRef = db.collection("chat");
 
-/* STATE */
-let isGuest = false;
-let guestUser = "";
+let isGuest=false;
+let guestUser="";
+let messageCount=0;
 
 /* AUTH */
 function login(){
@@ -233,15 +259,13 @@ function logout(){
 
 /* GUEST */
 function guestLogin(){
-  const name=guestName.value;
-
-  if(!name.trim()){
+  if(!guestName.value.trim()){
     alert("Username fehlt");
     return;
   }
 
   isGuest=true;
-  guestUser=name;
+  guestUser=guestName.value;
 
   loginScreen.style.display="none";
   app.style.display="block";
@@ -267,29 +291,41 @@ function toggleMenu(){
   m.style.display=m.style.display==="none"?"block":"none";
 }
 
-/* CHAT FIX */
+/* CHAT LIVE */
 function loadChat(){
   chatRef.orderBy("time").onSnapshot(snap=>{
     const box=document.getElementById("chatBox");
     box.innerHTML="";
+    messageCount=0;
 
     snap.forEach(d=>{
       const data=d.data();
+      messageCount++;
+
       const div=document.createElement("div");
       div.innerText=data.user+": "+data.text;
       box.appendChild(div);
     });
+
+    updateChatInfo();
   });
 }
 
-function toggleChat(){
-  const box=document.getElementById("chatBox");
-  box.style.display=box.style.display==="none"?"block":"none";
+function updateChatInfo(){
+  const info=document.getElementById("chatInfo");
+
+  const reset=new Date();
+  reset.setHours(24,0,0,0);
+
+  info.innerHTML=
+    "👥 Nachrichten: "+messageCount+
+    "<br>⏱ Reset: "+reset.toLocaleTimeString();
 }
 
+/* CHAT SEND */
 function sendChat(){
-  const msg=chatInput.value;
-  if(!msg) return;
+  const msg=document.getElementById("chatInput").value;
+  if(!msg.trim()) return;
 
   let user="Gast";
 
@@ -305,17 +341,25 @@ function sendChat(){
     time:Date.now()
   });
 
-  chatInput.value="";
+  document.getElementById("chatInput").value="";
 }
 
-/* TRANSLATE */
+/* CHAT TOGGLE */
+function toggleChat(){
+  const box=document.getElementById("chatBox");
+  box.style.display=box.style.display==="none"?"block":"none";
+}
+
+/* TRANSLATE FIX */
 async function translateText(){
   const text=document.getElementById("text").value;
+  const from=document.getElementById("fromLang").value;
+  const to=document.getElementById("toLang").value;
 
   const res=await fetch(
     "https://api.mymemory.translated.net/get?q="+
     encodeURIComponent(text)+
-    "&langpair=en|de"
+    "&langpair="+from+"|"+to
   );
 
   const data=await res.json();
