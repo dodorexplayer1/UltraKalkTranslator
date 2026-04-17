@@ -6,46 +6,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <style>
     body{
       margin:0;
       font-family:Arial;
-      background:linear-gradient(135deg,#0f172a,#1e293b);
-      color:white;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:100vh;
-    }
-
-    .card{
-      background:#111827;
-      padding:22px;
-      border-radius:18px;
-      width:92%;
-      max-width:540px;
-    }
-
-    h2{text-align:center;}
-
-    textarea,select,button{
-      width:100%;
-      margin-top:10px;
-      padding:12px;
-      border-radius:10px;
-      border:none;
-      font-size:14px;
-    }
-
-    textarea{
-      min-height:90px;
       background:#0f172a;
       color:white;
     }
 
-    select{background:#0f172a;color:white;}
+    /* LOGIN SCREEN */
+    #loginScreen{
+      position:fixed;
+      inset:0;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .loginBox{
+      background:#111827;
+      padding:20px;
+      border-radius:12px;
+      width:300px;
+    }
+
+    input,button{
+      width:100%;
+      padding:10px;
+      margin-top:10px;
+      border-radius:8px;
+      border:none;
+    }
 
     button{
       background:#3b82f6;
@@ -54,35 +49,52 @@
       cursor:pointer;
     }
 
-    .row{display:flex;gap:10px;}
-    .row button{flex:1;}
+    /* APP */
+    #app{
+      display:none;
+      padding:20px;
+    }
+
+    textarea,select{
+      width:100%;
+      margin-top:10px;
+      padding:10px;
+      border-radius:8px;
+      border:none;
+    }
+
+    textarea{
+      min-height:90px;
+      background:#111827;
+      color:white;
+    }
+
+    select{
+      background:#111827;
+      color:white;
+    }
 
     #output{
-      margin-top:15px;
-      padding:12px;
-      background:#0f172a;
-      border-radius:10px;
-      min-height:70px;
+      margin-top:10px;
+      padding:10px;
+      background:#111827;
+      border-radius:8px;
+      min-height:60px;
     }
+
+    .row{display:flex;gap:10px;}
+    .row button{flex:1;}
 
     /* CHAT */
     #chatBox{
       position:fixed;
       bottom:70px;
       right:10px;
-      width:260px;
-      background:#0f172a;
-      padding:10px;
-      border-radius:12px;
-      display:none;
-    }
-
-    #chatMessages{
-      height:140px;
-      overflow-y:auto;
+      width:250px;
       background:#111827;
-      padding:6px;
-      border-radius:8px;
+      padding:10px;
+      border-radius:10px;
+      display:none;
     }
 
     #chatInput{
@@ -91,11 +103,10 @@
       margin-top:5px;
       border-radius:8px;
       border:none;
-      background:#111827;
+      background:#0f172a;
       color:white;
     }
 
-    /* BUTTON */
     #chatToggle{
       position:fixed;
       bottom:10px;
@@ -110,26 +121,30 @@
       cursor:pointer;
       font-size:22px;
     }
-
-    /* LOGIN */
-    #loginBox{
-      position:fixed;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
-      background:#111827;
-      padding:20px;
-      border-radius:12px;
-      display:none;
-      width:260px;
-    }
   </style>
 </head>
 
 <body>
 
-<div class="card">
+<!-- 🔐 LOGIN -->
+<div id="loginScreen">
+  <div class="loginBox">
+    <h3>Login</h3>
+
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Passwort">
+
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Account erstellen</button>
+  </div>
+</div>
+
+<!-- 🚀 APP -->
+<div id="app">
+
   <h2>Ultra Translator 50 Global</h2>
+
+  <button onclick="logout()">Logout</button>
 
   <textarea id="text"></textarea>
 
@@ -143,28 +158,16 @@
     <button onclick="summarizeText()">Zusammenfassen</button>
   </div>
 
-  <button onclick="openLogin()">Login</button>
-
   <div id="output"></div>
 </div>
 
-<!-- CHAT -->
+<!-- 💬 CHAT -->
 <div id="chatBox">
-  <b>💬 Chat</b>
-  <div id="chatMessages"></div>
-  <input id="chatInput">
+  <input id="chatInput" placeholder="Nachricht...">
   <button onclick="sendChat()">Senden</button>
 </div>
 
-<!-- CHAT BUTTON -->
 <div id="chatToggle" onclick="toggleChat()">💬</div>
-
-<!-- LOGIN -->
-<div id="loginBox">
-  <b>Username</b>
-  <input id="usernameInput">
-  <button onclick="saveUsername()">Speichern</button>
-</div>
 
 <script>
 
@@ -179,27 +182,100 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
 const db = firebase.firestore();
 const chatRef = db.collection("chat");
 
-let username = localStorage.getItem("username") || "";
 let lastResult = "";
 
-/* 🌍 50 SPRACHEN */
-const languages = {
-  en:"Englisch", de:"Deutsch", fr:"Französisch", es:"Spanisch",
-  it:"Italienisch", pt:"Portugiesisch", ru:"Russisch", zh:"Chinesisch",
-  ja:"Japanisch", ko:"Koreanisch", ar:"Arabisch", hi:"Hindi",
-  fa:"Persisch", ur:"Urdu", bn:"Bengalisch", tr:"Türkisch",
-  vi:"Vietnamesisch", id:"Indonesisch", pl:"Polnisch", uk:"Ukrainisch",
-  nl:"Niederländisch", el:"Griechisch", sv:"Schwedisch", da:"Dänisch",
-  fi:"Finnisch", no:"Norwegisch", cs:"Tschechisch", ro:"Rumänisch",
-  hu:"Ungarisch", he:"Hebräisch", th:"Thailändisch", ms:"Malaiisch",
-  tl:"Filipino", sw:"Swahili", ta:"Tamil", te:"Telugu",
-  ml:"Malayalam", kn:"Kannada", pa:"Punjabi", mr:"Marathi",
-  ne:"Nepalesisch", si:"Singhalesisch", my:"Burmesisch", km:"Khmer",
-  lo:"Laotisch", am:"Amharisch", az:"Aserbaidschanisch", so:"Somali",
-  zu:"Zulu", yo:"Yoruba"
+/* AUTH */
+function register(){
+  auth.createUserWithEmailAndPassword(email.value,password.value)
+    .then(()=>alert("Account erstellt"))
+    .catch(e=>alert(e.message));
+}
+
+function login(){
+  auth.signInWithEmailAndPassword(email.value,password.value)
+    .catch(e=>alert(e.message));
+}
+
+function logout(){
+  auth.signOut();
+}
+
+/* STATE */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    loginScreen.style.display="none";
+    app.style.display="block";
+  }else{
+    loginScreen.style.display="flex";
+    app.style.display="none";
+  }
+});
+
+/* CHAT */
+function toggleChat(){
+  let box=document.getElementById("chatBox");
+  box.style.display = box.style.display==="none"?"block":"none";
+}
+
+function sendChat(){
+  let msg=document.getElementById("chatInput").value;
+  if(!msg) return;
+
+  chatRef.add({
+    text:msg,
+    user:auth.currentUser.email,
+    time:Date.now()
+  });
+
+  chatInput.value="";
+}
+
+/* TRANSLATE */
+async function translateText(){
+  let text=document.getElementById("text").value;
+
+  let res=await fetch(
+    "https://api.mymemory.translated.net/get?q="+
+    encodeURIComponent(text)+
+    "&langpair=en|de"
+  );
+
+  let data=await res.json();
+  output.innerText=data.responseData.translatedText;
+}
+
+/* SIMPLIFY */
+function simplifyText(){
+  let text=document.getElementById("text").value;
+  output.innerText="VEREINFACHT:\n\n"+text.split(".")[0];
+}
+
+/* SUMMARY */
+function summarizeText(){
+  let text=document.getElementById("text").value;
+  output.innerText="ZUSAMMENFASSUNG:\n\n"+text.slice(0,120)+"...";
+}
+
+/* INIT LANGUAGES */
+const languages={
+  en:"Englisch",de:"Deutsch",fr:"Französisch",es:"Spanisch",
+  it:"Italienisch",pt:"Portugiesisch",ru:"Russisch",zh:"Chinesisch",
+  ja:"Japanisch",ko:"Koreanisch",ar:"Arabisch",hi:"Hindi",
+  fa:"Persisch",ur:"Urdu",bn:"Bengalisch",tr:"Türkisch",
+  vi:"Vietnamesisch",id:"Indonesisch",pl:"Polnisch",uk:"Ukrainisch",
+  nl:"Niederländisch",el:"Griechisch",sv:"Schwedisch",da:"Dänisch",
+  fi:"Finnisch",no:"Norwegisch",cs:"Tschechisch",ro:"Rumänisch",
+  hu:"Ungarisch",he:"Hebräisch",th:"Thailändisch",ms:"Malaiisch",
+  tl:"Filipino",sw:"Swahili",ta:"Tamil",te:"Telugu",
+  ml:"Malayalam",kn:"Kannada",pa:"Punjabi",mr:"Marathi",
+  ne:"Nepalesisch",si:"Singhalesisch",my:"Burmesisch",km:"Khmer",
+  lo:"Laotisch",am:"Amharisch",az:"Aserbaidschanisch",so:"Somali",
+  zu:"Zulu",yo:"Yoruba"
 };
 
 function loadLanguages(){
@@ -212,95 +288,8 @@ function loadLanguages(){
   }
 }
 
-/* TRANSLATE */
-async function translateText(){
-  let text=document.getElementById("text").value;
-  let from=document.getElementById("fromLang").value;
-  let to=document.getElementById("toLang").value;
-
-  let res=await fetch(
-    "https://api.mymemory.translated.net/get?q="+
-    encodeURIComponent(text)+
-    "&langpair="+from+"|"+to
-  );
-
-  let data=await res.json();
-  lastResult=data.responseData.translatedText;
-  output.innerText=lastResult;
-}
-
-/* VEREINFACHEN */
-function simplifyText(){
-  let text = lastResult || document.getElementById("text").value || "";
-  let sentences = text.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);
-
-  let keep = Math.max(1, Math.ceil(sentences.length * 0.5));
-
-  let result = sentences.slice(0,keep).join(". ");
-
-  output.innerText="VEREINFACHT:\n\n"+result+".";
-}
-
-/* ZUSAMMENFASSEN */
-function summarizeText(){
-  let text = lastResult || document.getElementById("text").value || "";
-  let sentences = text.split(/[.!?]/).map(s=>s.trim()).filter(s=>s.length>20);
-
-  let first = sentences[0] || text;
-  let longest = sentences.sort((a,b)=>b.length-a.length)[0] || "";
-
-  let summary = first;
-  if(longest!==first) summary += ". "+longest;
-
-  output.innerText="ZUSAMMENFASSUNG:\n\n"+summary+".";
-}
-
-/* CHAT */
-function toggleChat(){
-  let box=document.getElementById("chatBox");
-  box.style.display = box.style.display==="none"?"block":"none";
-}
-
-function openLogin(){
-  document.getElementById("loginBox").style.display="block";
-}
-
-function saveUsername(){
-  username=document.getElementById("usernameInput").value;
-  localStorage.setItem("username",username);
-  document.getElementById("loginBox").style.display="none";
-}
-
-function sendChat(){
-  let msg=document.getElementById("chatInput").value;
-  if(!msg || !username) return;
-
-  chatRef.add({
-    text:msg,
-    user:username,
-    time:Date.now()
-  });
-
-  chatInput.value="";
-}
-
-function loadChat(){
-  chatRef.orderBy("time").onSnapshot(snap=>{
-    let box=document.getElementById("chatMessages");
-    box.innerHTML="";
-    snap.forEach(d=>{
-      let data=d.data();
-      let div=document.createElement("div");
-      div.innerText="👤 "+data.user+": "+data.text;
-      box.appendChild(div);
-    });
-  });
-}
-
-/* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
   loadLanguages();
-  loadChat();
 });
 
 </script>
