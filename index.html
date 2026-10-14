@@ -274,23 +274,43 @@ function toggleMenu(){
 
 /* LOGIN */
 function login(){
-  auth.signInWithEmailAndPassword(email.value,password.value)
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("password").value;
+  const userVal = document.getElementById("username").value;
+
+  auth.signInWithEmailAndPassword(emailVal, passVal)
   .then(u=>{
-    currentUsername=username.value || u.user.email;
+    currentUsername = userVal || u.user.email;
   });
 }
 
 function register(){
-  auth.createUserWithEmailAndPassword(email.value,password.value)
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("password").value;
+  const userVal = document.getElementById("username").value;
+
+  auth.createUserWithEmailAndPassword(emailVal, passVal)
   .then(u=>{
-    currentUsername=username.value || u.user.email;
+    currentUsername = userVal || u.user.email;
   });
+}
+
+/* GUEST LOGIN FIX */
+function guestLogin(){
+  isGuest = true;
+  guestUser = document.getElementById("guestName").value.trim() || "Guest";
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  loadChat();
+  loadImages();
 }
 
 function logout(){
   auth.signOut();
   isGuest=false;
   guestUser="";
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
 }
 
 /* CHAT CODE $01$ */
@@ -302,19 +322,22 @@ function toggleChat(){
     chatUnlocked=true;
   }
 
-  const open=chatBox.style.display==="block";
-  chatBox.style.display=open?"none":"block";
-  chatInputBox.style.display=open?"none":"block";
+  const box = document.getElementById("chatBox");
+  const inputBox = document.getElementById("chatInputBox");
+
+  const open=box.style.display==="block";
+  box.style.display=open?"none":"block";
+  inputBox.style.display=open?"none":"block";
 
   requestAnimationFrame(()=>{
-    chatBox.scrollTop=chatBox.scrollHeight;
+    box.scrollTop=box.scrollHeight;
   });
 }
 
 /* CHAT */
 function loadChat(){
   chatRef.orderBy("time","asc").onSnapshot(snap=>{
-    const box=chatBox;
+    const box=document.getElementById("chatBox");
 
     const atBottom =
       box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
@@ -336,6 +359,7 @@ function loadChat(){
 }
 
 function sendChat(){
+  const chatInput = document.getElementById("chatInput");
   if(!chatInput.value.trim()) return;
 
   chatRef.add({
@@ -354,15 +378,16 @@ function openUpload(){
     if(c!=="$00$") return;
     uploadUnlocked=true;
   }
-  imagePanel.style.display="block";
+  document.getElementById("imagePanel").style.display="block";
 }
 
 function closeUpload(){
-  imagePanel.style.display="none";
+  document.getElementById("imagePanel").style.display="none";
 }
 
 function uploadImage(){
-  const file=imgUpload.files[0];
+  const fileInput = document.getElementById("imgUpload");
+  const file=fileInput.files[0];
   if(!file) return;
 
   const r=new FileReader();
@@ -372,40 +397,65 @@ function uploadImage(){
       user:currentUsername||guestUser||"anon",
       time:Date.now()
     });
+    fileInput.value = "";
+    closeUpload();
   };
   r.readAsDataURL(file);
 }
 
+/* LOAD IMAGES GALLERY FIX */
+function loadImages(){
+  imgRef.orderBy("time","desc").onSnapshot(snap=>{
+    const gallery=document.getElementById("gallery");
+    gallery.innerHTML="";
+
+    snap.forEach(d=>{
+      const data=d.data();
+      const div=document.createElement("div");
+      div.innerHTML=`<img src="${data.img}"><small style="color:#94a3b8">${data.user||"anon"}</small>`;
+      gallery.appendChild(div);
+    });
+  });
+}
+
 /* TRANSLATE */
 async function translateText(){
+  const textVal = document.getElementById("text").value;
+  const fromVal = document.getElementById("fromLang").value;
+  const toVal = document.getElementById("toLang").value;
+
   const r=await fetch(
-    "https://api.mymemory.translated.net/get?q="+text.value+
-    "&langpair="+fromLang.value+"|"+toLang.value
+    "https://api.mymemory.translated.net/get?q="+encodeURIComponent(textVal)+
+    "&langpair="+fromVal+"|"+toVal
   );
 
   const d=await r.json();
   lastText=d.responseData.translatedText;
-  output.innerText=lastText;
+  document.getElementById("output").innerText=lastText;
 }
 
 /* FIX */
 function simplifyText(){
-  const b=output.innerText||text.value;
-  output.innerText=b.split(".")[0];
+  const outputEl = document.getElementById("output");
+  const textEl = document.getElementById("text");
+  const b=outputEl.innerText||textEl.value;
+  outputEl.innerText=b.split(".")[0];
 }
 
 function summarizeText(){
-  const b=output.innerText||text.value;
-  output.innerText=b.split(" ").slice(0,25).join(" ")+"...";
+  const outputEl = document.getElementById("output");
+  const textEl = document.getElementById("text");
+  const b=outputEl.innerText||textEl.value;
+  outputEl.innerText=b.split(" ").slice(0,25).join(" ")+"...";
 }
 
 /* INFO */
 function openInfo(){
-  output.innerText="System OK";
+  document.getElementById("output").innerText="System OK";
 }
 
-function openSettings(){output.innerText="Settings";}
-function openHelp(){output.innerText="Help";}
+function openSettings(){document.getElementById("output").innerText="Settings";}
+function openHelp(){document.getElementById("output").innerText="Help";}
 
 /* LANGUAGES FULL */
 const languages={
@@ -417,16 +467,20 @@ cs:"Tschechisch",ro:"Rumänisch",hu:"Ungarisch",he:"Hebräisch",th:"Thailändisc
 vi:"Vietnamesisch",id:"Indonesisch",ms:"Malaiisch",tl:"Filipino"
 };
 
+const fromLangSelect = document.getElementById("fromLang");
+const toLangSelect = document.getElementById("toLang");
+
 for(let l in languages){
-  fromLang.add(new Option(languages[l],l));
-  toLang.add(new Option(languages[l],l));
+  fromLangSelect.add(new Option(languages[l],l));
+  toLangSelect.add(new Option(languages[l],l));
 }
 
 auth.onAuthStateChanged(u=>{
   if(u || isGuest){
-    loginScreen.style.display="none";
-    app.style.display="block";
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("app").style.display="block";
     loadChat();
+    loadImages();
   }
 });
 
