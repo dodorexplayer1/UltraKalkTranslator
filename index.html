@@ -101,45 +101,6 @@
       z-index:999;
     }
 
-    /* CHAT */
-    #chatBox{
-      position:fixed;
-      bottom:140px;
-      right:10px;
-      width:280px;
-      height:280px;
-      overflow-y:auto;
-      background:#111827;
-      padding:10px;
-      border-radius:10px;
-      display:none;
-    }
-
-    #chatInputBox{
-      position:fixed;
-      bottom:70px;
-      right:10px;
-      width:280px;
-      background:#111827;
-      padding:10px;
-      border-radius:10px;
-      display:none;
-    }
-
-    #chatToggle{
-      position:fixed;
-      bottom:10px;
-      right:10px;
-      width:55px;
-      height:55px;
-      border-radius:50%;
-      background:#3b82f6;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      cursor:pointer;
-    }
-
     /* UPLOAD */
     #uploadBtn{
       position:fixed;
@@ -198,7 +159,6 @@
   <div id="menuBtn" onclick="toggleMenu()">|||</div>
 
   <div id="menu">
-    <button onclick="openSettings()">Settings</button>
     <button onclick="openHelp()">Help</button>
     <button onclick="openInfo()">Info</button>
     <button onclick="logout()">Logout</button>
@@ -224,16 +184,6 @@
   </div>
 
   <div id="output"></div>
-
-  <!-- CHAT -->
-  <div id="chatBox"></div>
-
-  <div id="chatInputBox">
-    <input id="chatInput" placeholder="Message">
-    <button onclick="sendChat()">Send</button>
-  </div>
-
-  <div id="chatToggle" onclick="toggleChat()">💬</div>
 </div>
 
 <!-- IMAGE -->
@@ -255,14 +205,12 @@ firebase.initializeApp({
 const auth=firebase.auth();
 const db=firebase.firestore();
 
-const chatRef=db.collection("chat");
 const imgRef=db.collection("images");
 
 /* STATE */
 let isGuest=false;
 let guestUser="";
 let currentUsername="";
-let chatUnlocked=false;
 let uploadUnlocked=false;
 let lastText="";
 
@@ -301,7 +249,6 @@ function guestLogin(){
   guestUser = document.getElementById("guestName").value.trim() || "Guest";
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
-  loadChat();
   loadImages();
 }
 
@@ -311,64 +258,6 @@ function logout(){
   guestUser="";
   document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("app").style.display = "none";
-}
-
-/* CHAT CODE $01$ */
-function toggleChat(){
-
-  if(!chatUnlocked){
-    const c=prompt("Global Chat Code?");
-    if(c!=="$01$") return;
-    chatUnlocked=true;
-  }
-
-  const box = document.getElementById("chatBox");
-  const inputBox = document.getElementById("chatInputBox");
-
-  const open=box.style.display==="block";
-  box.style.display=open?"none":"block";
-  inputBox.style.display=open?"none":"block";
-
-  requestAnimationFrame(()=>{
-    box.scrollTop=box.scrollHeight;
-  });
-}
-
-/* CHAT */
-function loadChat(){
-  chatRef.orderBy("time","asc").onSnapshot(snap=>{
-    const box=document.getElementById("chatBox");
-
-    const atBottom =
-      box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
-
-    box.innerHTML="";
-
-    snap.forEach(d=>{
-      const div=document.createElement("div");
-      div.innerText=(d.data().user||"anon")+": "+d.data().text;
-      box.appendChild(div);
-    });
-
-    requestAnimationFrame(()=>{
-      if(atBottom || chatUnlocked){
-        box.scrollTop=box.scrollHeight;
-      }
-    });
-  });
-}
-
-function sendChat(){
-  const chatInput = document.getElementById("chatInput");
-  if(!chatInput.value.trim()) return;
-
-  chatRef.add({
-    text:chatInput.value,
-    user:isGuest?guestUser:(currentUsername||"user"),
-    time:Date.now()
-  });
-
-  chatInput.value="";
 }
 
 /* UPLOAD CODE $00$ */
@@ -454,7 +343,6 @@ function openInfo(){
   document.getElementById("output").innerText="System OK";
 }
 
-function openSettings(){document.getElementById("output").innerText="Settings";}
 function openHelp(){document.getElementById("output").innerText="Help";}
 
 /* LANGUAGES FULL */
@@ -479,7 +367,6 @@ auth.onAuthStateChanged(u=>{
   if(u || isGuest){
     document.getElementById("loginScreen").style.display="none";
     document.getElementById("app").style.display="block";
-    loadChat();
     loadImages();
   }
 });
